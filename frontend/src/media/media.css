@@ -49,7 +49,7 @@
   font-family: var(--mi-font-b);
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
-  overflow: hidden;
+  /* No overflow:hidden here — children manage their own scroll */
 }
 
 .mi-main {
@@ -58,6 +58,8 @@
   overflow-x: hidden;
   scrollbar-width: thin;
   scrollbar-color: var(--mi-border-md) transparent;
+  /* min-height:0 is critical for flex children to scroll correctly */
+  min-height: 0;
 }
 
 /* ── Stepper nav ─────────────────────────────────────────────────────────── */
@@ -1114,12 +1116,24 @@
 .eng-shell {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 56px); /* subtract stepper */
-  overflow: hidden;
+  /* Fill mi-main completely — height is inherited from the flex parent */
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;           /* shell clips; .eng-body scrolls */
   font-family: var(--eng-font-b, 'DM Sans', sans-serif);
   color: var(--eng-text, #111827);
 }
-.eng-theme-root { height: 100%; }
+.eng-theme-root { height: 100%; display: flex; flex-direction: column; }
+
+/* Scrollable body — everything below the sticky header */
+.eng-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,0.12) transparent;
+}
 
 /* ── Header bar ──────────────────────────────────────────────────────────── */
 .eng-header {
@@ -1674,9 +1688,15 @@
    Phase 2 — Multi-Dashboard, Template Gallery, Hero, Storyboard, Homepage
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Fullscreen dashboard mode ─────────────────────────────────────────── */
-.mi-app--fullscreen { overflow: hidden; }
-.mi-main--fullscreen { overflow: hidden; height: 100vh; }
+/* ── Fullscreen dashboard mode — kept for reference, not applied ────────── */
+/* Scroll is handled by .eng-body inside DashboardEngine + .mi-main */
+/* .mi-app--fullscreen { overflow: hidden; }  <-- removed: was blocking scroll */
+/* .mi-main--fullscreen { overflow: hidden; } <-- removed: was blocking scroll */
+
+/* Ensure .mi-main children that use flex fill height correctly */
+.mi-main > * { min-height: 0; }
+/* DashboardEngine needs full height so eng-body can flex-fill */
+.mi-main > div { height: 100%; }
 
 /* ── Stage2 multi-select additions ──────────────────────────────────────── */
 .mi-field-row {
@@ -2516,4 +2536,431 @@
   .eng-storyboard { padding: 28px 24px 36px; }
   .dash-home-grid { grid-template-columns: 1fr; }
   .mi-tpl-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Stage3 Launch — multi-branch additions ─────────────────────────────── */
+.mi-launch-branches {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+.mi-launch-branch-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+.mi-launch-branch-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.mi-launch-branch-num {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mi-text-3);
+  min-width: 52px;
+}
+.mi-launch-branch-name {
+  font-weight: 500;
+  color: var(--mi-text);
+}
+
+/* Payload inspector */
+.mi-payload-inspector {
+  margin: 0 0 20px;
+  border: 1px solid var(--mi-border);
+  border-radius: var(--mi-radius);
+  overflow: hidden;
+  background: var(--mi-surface);
+}
+.mi-payload-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--mi-text-2);
+  text-align: left;
+  transition: background 0.15s;
+}
+.mi-payload-toggle:hover { background: var(--mi-surface-2); }
+.mi-payload-body { overflow: hidden; }
+.mi-payload-pre {
+  margin: 0;
+  padding: 14px 16px;
+  font-family: var(--mi-font-mono);
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--mi-text-2);
+  background: var(--mi-surface-2);
+  overflow-x: auto;
+  max-height: 360px;
+  overflow-y: auto;
+  border-top: 1px solid var(--mi-border);
+}
+
+/* Pipeline branch chips */
+.mi-pipeline-branches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.mi-pipeline-branch-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 500;
+  border: 1px solid;
+  border-radius: 20px;
+  padding: 3px 10px;
+  background: rgba(255,255,255,0.5);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ChartDataRenderer — smart chart grid styles
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.cdr-root { padding: 28px 40px 48px; }
+.cdr-root--compact { padding: 20px 24px 32px; }
+
+.cdr-section-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.cdr-section-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+  white-space: nowrap;
+}
+.cdr-section-line { flex: 1; height: 2px; border-radius: 2px; }
+
+/* KPI strip */
+.cdr-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+.cdr-item--kpi { /* no extra styles needed — KpiCard handles itself */ }
+
+.cdr-kpi-card {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,0.07);
+  border-top: 3px solid;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.cdr-kpi-value {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.cdr-kpi-unit { font-size: 14px; font-weight: 500; margin-left: 3px; }
+.cdr-kpi-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #999;
+}
+.cdr-kpi-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 20px;
+  width: fit-content;
+  margin-top: 2px;
+}
+.cdr-kpi-delta--up   { background: rgba(22,163,74,0.1);  color: #16a34a; }
+.cdr-kpi-delta--down { background: rgba(220,38,38,0.1); color: #dc2626; }
+.cdr-kpi-desc { font-size: 12px; color: #888; margin: 3px 0 0; line-height: 1.45; }
+
+/* Charts grid */
+.cdr-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+.cdr-item { display: contents; } /* transparent wrapper */
+.cdr-item--full { grid-column: span 2; }
+
+@media (max-width: 900px) {
+  .cdr-charts-grid { grid-template-columns: 1fr; }
+  .cdr-item--full { grid-column: span 1; }
+}
+
+/* Chart card */
+.cdr-card {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,0.07);
+  padding: 20px 22px 22px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cdr-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.cdr-card-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #111;
+  margin: 0;
+}
+.cdr-card-type-badge {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #aaa;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  padding: 2px 6px;
+  flex-shrink: 0;
+}
+.cdr-card-insight {
+  font-size: 12.5px;
+  color: #666;
+  line-height: 1.55;
+  margin: 0;
+  padding: 10px 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 3px solid currentColor;
+}
+.cdr-chart-area { width: 100%; }
+.cdr-empty {
+  font-size: 12.5px;
+  color: #aaa;
+  padding: 20px 0;
+  text-align: center;
+}
+.cdr-empty-state {
+  padding: 40px;
+  text-align: center;
+  color: #aaa;
+  font-size: 13px;
+}
+
+/* Recharts tooltip */
+.cdr-tooltip {
+  background: rgba(255,255,255,0.97);
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 8px;
+  padding: 10px 13px;
+  font-size: 12.5px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+}
+.cdr-tooltip-label {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+}
+.cdr-tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 3px;
+}
+.cdr-tooltip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.cdr-tooltip-key { color: #666; }
+.cdr-tooltip-val { font-weight: 600; color: #111; margin-left: auto; padding-left: 12px; }
+
+/* Table */
+.cdr-table-wrap { overflow-x: auto; overflow-y: auto; max-height: 360px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.07); }
+.cdr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.cdr-table thead th {
+  position: sticky;
+  top: 0;
+  background: #f8f9fa;
+  padding: 9px 14px;
+  text-align: left;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #888;
+  border-bottom: 2px solid;
+  white-space: nowrap;
+}
+.cdr-table tbody tr { border-bottom: 1px solid rgba(0,0,0,0.05); }
+.cdr-table tbody tr:last-child { border-bottom: none; }
+.cdr-table tbody tr:hover { background: #f9fafb; }
+.cdr-table td {
+  padding: 9px 14px;
+  color: #333;
+  vertical-align: top;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cdr-td-num { font-family: var(--mi-font-mono); text-align: right; font-weight: 600; color: #111; }
+.cdr-table-more { font-size: 11.5px; color: #aaa; text-align: center; padding: 8px; margin: 0; }
+
+/* Charts section in engine */
+.eng-charts-section {
+  padding: 0;   /* ChartDataRenderer has its own padding */
+}
+.eng-charts-loading,
+.eng-charts-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px 40px;
+  color: #888;
+  font-size: 13px;
+}
+.eng-charts-error { flex-direction: column; }
+
+/* Chart count badge in template preview */
+.mi-tpl-content-count {
+  font-size: 10px;
+  font-weight: 600;
+  background: rgba(0,0,0,0.06);
+  border-radius: 20px;
+  padding: 2px 7px;
+  margin-left: auto;
+  color: #999;
+}
+
+/* Responsive fixes */
+@media (max-width: 768px) {
+  .cdr-root { padding: 20px 20px 32px; }
+  .cdr-kpi-strip { grid-template-columns: repeat(2, 1fr); }
+  .cdr-charts-grid { grid-template-columns: 1fr; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Fixes: dark tab nav, dark exec panel, storyboard section rename,
+          chart card insight formatting
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Force light tab nav — overrides any dark API theme ───────────────────── */
+/* .eng-storyboard is the StoryboardRenderer nav — must always be light */
+.eng-storyboard {
+  background: #ffffff !important;
+  border-bottom: 1px solid rgba(0,0,0,0.08) !important;
+}
+.eng-tab-title { color: #666 !important; }
+.eng-tab--active .eng-tab-title { color: #111 !important; font-weight: 600 !important; }
+.eng-tab:hover { background: rgba(0,0,0,0.03) !important; }
+
+/* ── Force light exec panel ──────────────────────────────────────────────── */
+.eng-exec-panel {
+  background: #ffffff !important;
+  border: 1px solid rgba(0,0,0,0.07);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05) !important;
+  margin: 0 40px 48px;
+  border-radius: 16px;
+}
+.eng-exec-summary { color: #555 !important; }
+.eng-exec-item    { color: #333 !important; }
+.eng-exec-section-title { color: #999 !important; }
+
+/* ── Story section (renamed from .eng-storyboard to avoid conflict) ──────── */
+.eng-story-section {
+  padding: 36px 40px 44px;
+}
+.eng-story-section-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.eng-story-section-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.eng-story-section-sub {
+  font-size: 12.5px;
+  color: #888;
+  margin: 4px 0 0;
+}
+.eng-story-section-accent {
+  flex: 1;
+  height: 2px;
+  border-radius: 2px;
+  max-width: 80px;
+}
+.eng-story-section-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* ── Chart card insight row ──────────────────────────────────────────────── */
+.cdr-insight-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 3px solid;
+}
+.cdr-card-insight {
+  font-size: 12.5px;
+  color: #555;
+  line-height: 1.6;
+  margin: 0;
+}
+.cdr-card-period {
+  font-size: 11px;
+  color: #aaa;
+  display: block;
+  margin-top: 2px;
+}
+.cdr-kpi-insight {
+  font-size: 11.5px;
+  color: #777;
+  line-height: 1.5;
+  margin: 4px 0 0;
+  font-style: italic;
+}
+
+/* ── eng-content light background ───────────────────────────────────────── */
+.eng-content { background: var(--eng-bg, #f8f9fa) !important; }
+
+/* ── Responsive story section ────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .eng-story-section { padding: 24px 20px 32px; }
+  .eng-story-section-grid { grid-template-columns: 1fr; }
+  .eng-exec-panel { margin: 0 20px 32px; }
 }

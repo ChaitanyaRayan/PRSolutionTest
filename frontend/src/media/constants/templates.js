@@ -181,6 +181,22 @@ export const HTML_TEMPLATES = [
     heroStyle: 'industrial-teal',
     chartStyle: 'teal-industrial',
   },
+  {
+    id: 'template_12',
+    name: 'Pharma Executive Intelligence',
+    brand: 'BeOne Medicines',
+    style: 'Executive Intelligence',
+    file: '/templates/template_12.html',
+    primaryColor: '#D32E27',
+    accentColor: '#0F2344',
+    bgColor: '#F3F5FA',
+    textColor: '#111827',
+    palette: ['#D32E27', '#0F2344', '#059669', '#d97706'],
+    tags: ['Pharma', 'Executive', 'Healthcare', 'Intelligence'],
+    description: 'Executive intelligence dashboard for pharmaceutical brands with weekly/daily analysis, sentiment, crisis monitoring, and publication tracking',
+    heroStyle: 'pharma-red-navy',
+    chartStyle: 'pharma-gradient',
+  },
 ];
 
 export const getTemplateById = (id) => HTML_TEMPLATES.find((t) => t.id === id) ?? null;
