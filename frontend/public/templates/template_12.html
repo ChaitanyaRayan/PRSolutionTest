@@ -1,0 +1,1811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BeOne Medicines — Executive Intelligence Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --purple: #D32E27;
+  --purple-mid: #E84040;
+  --pink: #0F2344;
+  --gradient: linear-gradient(135deg, #0F2344 0%, #D32E27 100%);
+  --gradient-bar: linear-gradient(90deg, #A82020 0%, #D32E27 100%);
+  --gradient-bar2: linear-gradient(90deg, #162E5A 0%, #0F2344 100%);
+  --red: #CC0000;
+  --green: #059669;
+  --amber: #d97706;
+  --bg: #F3F5FA;
+  --card: #ffffff;
+  --border: #E2E8F0;
+  --text: #111827;
+  --text-mid: #6b7280;
+  --text-light: #9ca3af;
+  /* BeOne brand colors */
+  --beone-red: #D32E27;
+  --beone-navy: #0F2344;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+/* HEADER */
+.header { background: var(--gradient); padding: 18px 32px; display: flex; align-items: center; justify-content: space-between; }
+.header-left h1 { font-size: 20px; font-weight: 800; color: #fff; }
+.header-left p { font-size: 12px; color: rgba(255,255,255,0.75); margin-top: 3px; }
+.header-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+.htag { padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; transition: all .2s; }
+.htag-outline { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.4); color: #fff; }
+.htag-outline:hover { background: rgba(255,255,255,.25); }
+.htag-fill { background: #fff; border: 1px solid #fff; color: var(--purple); }
+
+/* TOP-LEVEL TABS (Weekly Analysis / Daily Monitoring) */
+.top-nav { background: var(--card); border-bottom: 2px solid var(--border); display: flex; padding: 0 32px; position: sticky; top: 0; z-index: 200; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.top-tab { padding: 13px 24px; font-size: 13px; font-weight: 600; color: var(--text-mid); border: none; background: none; cursor: pointer; border-bottom: 3px solid transparent; transition: all .18s; font-family: 'Inter', sans-serif; white-space: nowrap; display: flex; align-items: center; gap: 7px; margin-bottom: -2px; }
+.top-tab:hover { color: var(--purple); }
+.top-tab.active { color: var(--purple); border-bottom-color: var(--purple); font-weight: 800; }
+.top-pane { display: none; }
+.top-pane.active { display: flex; height: calc(100vh - 105px); }
+
+/* LEFT SIDEBAR NAV */
+.sidebar-nav { width: 220px; min-width: 220px; background: var(--card); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 16px 10px; gap: 4px; overflow-y: auto; flex-shrink: 0; }
+.sidebar-label { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-light); padding: 8px 10px 4px; }
+.side-tab { display: flex; align-items: center; gap: 9px; padding: 10px 12px; border-radius: 10px; font-size: 13px; font-weight: 500; color: var(--text-mid); cursor: pointer; border: none; background: none; font-family: 'Inter', sans-serif; transition: all .18s; text-align: left; width: 100%; }
+.side-tab:hover { background: #FDEAEA; color: var(--purple); }
+.side-tab.active { background: var(--gradient); color: #fff; font-weight: 700; box-shadow: 0 3px 12px rgba(211,46,39,.3); }
+.side-tab .tab-icon { font-size: 15px; flex-shrink: 0; }
+
+/* MAIN CONTENT AREA */
+.content-area { flex: 1; overflow-y: auto; background: var(--bg); }
+
+/* SECTIONS */
+.section { display: none; padding: 28px 32px; }
+.section.active { display: block; }
+
+/* SECTION HEADER */
+.sec-head { margin-bottom: 22px; }
+.sec-head h2 { font-size: 22px; font-weight: 800; color: var(--text); }
+.sec-head h2 span { background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.sec-head p { font-size: 13px; color: var(--text-mid); margin-top: 4px; }
+.sec-underline { height: 3px; width: 60px; background: var(--gradient); border-radius: 2px; margin-top: 10px; }
+
+/* KPI STRIP */
+.kpi-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 20px; }
+.kpi-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px 16px; cursor: pointer; transition: all .2s; }
+.kpi-card:hover { box-shadow: 0 4px 20px rgba(211,46,39,.12); border-color: var(--purple-mid); }
+.kpi-icon { font-size: 18px; margin-bottom: 8px; }
+.kv { font-size: 28px; font-weight: 800; color: var(--text); line-height: 1; }
+.kv.red { color: var(--red); }
+.kv.green { color: var(--green); }
+.kv.amber { color: var(--amber); }
+.kv.purple { background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.klabel { font-size: 12px; font-weight: 700; color: var(--text); margin-top: 6px; }
+.ksub { font-size: 11px; color: var(--text-mid); margin-top: 2px; }
+.ktag { display: inline-block; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 10px; margin-top: 6px; }
+.ktag.up { background: #ecfdf5; color: var(--green); }
+.ktag.dn { background: #fff5f5; color: var(--red); }
+.ktag.neutral { background: #FDEAEA; color: var(--purple); }
+
+/* GRIDS */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+/* CARD */
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; cursor: pointer; transition: all .2s; }
+.card:hover { box-shadow: 0 4px 20px rgba(211,46,39,.09); }
+.card-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; gap: 10px; }
+.card-head-left h4 { font-size: 13px; font-weight: 700; color: var(--text); }
+.card-head-left p { font-size: 11px; color: var(--text-mid); margin-top: 2px; }
+.ai-btn { display: flex; align-items: center; gap: 5px; padding: 5px 12px; border: 1px solid rgba(211,46,39,.25); background: #FDEAEA; border-radius: 20px; font-size: 11px; font-weight: 600; color: var(--purple); cursor: pointer; font-family: 'Inter', sans-serif; transition: all .15s; flex-shrink: 0; }
+.ai-btn:hover { background: var(--gradient); color: #fff; border-color: transparent; }
+
+/* BAR ROWS */
+.bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+.bar-label { font-size: 12px; color: var(--text-mid); width: 130px; text-align: right; flex-shrink: 0; }
+.bar-label.wide { width: 160px; }
+.bar-wrap { flex: 1; height: 10px; background: #EBF0F9; border-radius: 5px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 5px; background: var(--gradient-bar); transition: width .6s ease; }
+.bar-fill.bar2 { background: var(--gradient-bar2); }
+.bar-fill.green { background: linear-gradient(90deg, #059669, #34d399); }
+.bar-fill.red { background: linear-gradient(90deg, #CC0000, #f87171); }
+.bar-fill.amber { background: linear-gradient(90deg, #d97706, #fbbf24); }
+.bar-nums { font-size: 12px; color: var(--text); font-weight: 600; min-width: 40px; text-align: right; }
+
+/* INSIGHT PANEL */
+.insight-panel { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+.insight-panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.insight-panel h3 { font-size: 14px; font-weight: 700; }
+.insight-panel h3 span { background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.insight-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.ins-item { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px; cursor: pointer; transition: all .2s; }
+.ins-item:hover { border-color: var(--purple-mid); background: #FEF0EE; }
+.ins-tag { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; margin-bottom: 5px; }
+.ins-tag.pos { color: var(--green); }
+.ins-tag.neg { color: var(--red); }
+.ins-tag.watch { color: var(--amber); }
+.ins-tag.info { color: var(--purple); }
+.ins-item p { font-size: 12px; color: var(--text); line-height: 1.5; }
+
+/* VERBATIM CARDS */
+.verbatim-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.verbatim-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+.verbatim-card.pos { border-left: 4px solid var(--green); }
+.verbatim-card.neg { border-left: 4px solid var(--red); }
+.v-tag { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: var(--text-mid); margin-bottom: 6px; }
+.v-text { font-size: 13px; color: var(--text); font-style: italic; line-height: 1.6; }
+.v-meta { font-size: 11px; color: var(--text-mid); margin-top: 8px; }
+
+/* GAP BOXES */
+.gap-box { background: #fff7ed; border-left: 3px solid var(--amber); border-radius: 8px; padding: 10px 14px; margin-top: 12px; font-size: 12px; color: var(--text); line-height: 1.5; }
+.gap-box strong { color: var(--amber); }
+.gap-box.purple { background: #FEF0EE; border-left-color: var(--purple); }
+.gap-box.purple strong { color: var(--purple); }
+.gap-box.red { background: #fff5f5; border-left-color: var(--red); }
+.gap-box.red strong { color: var(--red); }
+.gap-box.green { background: #f0fdf4; border-left-color: var(--green); }
+.gap-box.green strong { color: var(--green); }
+
+/* CHIP CLOUD */
+.chip-cloud { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.chip { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.chip.purple { background: #FDEAEA; color: var(--purple); border: 1px solid rgba(211,46,39,0.3); }
+.chip.pink { background: #fce7f3; color: #be185d; border: 1px solid #fbcfe8; }
+.chip.grey { background: #f3f4f6; color: #4b5563; border: 1px solid #e5e7eb; }
+.chip.amber { background: #fff7ed; color: var(--amber); border: 1px solid #fed7aa; }
+.chip.green { background: #ecfdf5; color: var(--green); border: 1px solid #a7f3d0; }
+.chip.red { background: #fff5f5; color: var(--red); border: 1px solid #fca5a5; }
+
+/* DONUT */
+.donut-wrap { display: flex; align-items: center; gap: 20px; }
+.donut-legend { display: flex; flex-direction: column; gap: 8px; }
+.legend-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.legend-val { font-weight: 700; color: var(--text); }
+.legend-name { color: var(--text-mid); }
+
+/* SCORE TABLE */
+.score-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.score-table th { text-align: left; padding: 8px 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-mid); border-bottom: 2px solid var(--border); }
+.score-table td { padding: 10px 10px; border-bottom: 1px solid var(--border); }
+.score-table tr:last-child td { border-bottom: none; }
+.score-table tr:hover td { background: var(--bg); }
+
+/* AI MODAL — matches original dashboard */
+.ai-overlay { display: none; position: fixed; inset: 0; background: rgba(14,22,38,.6); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+.ai-overlay.open { display: flex; }
+.ai-modal { background: #fff; border-radius: 16px; max-width: 520px; width: 92%; box-shadow: 0 16px 40px rgba(0,0,0,.18); overflow: hidden; animation: aiPop .24s cubic-bezier(.34,1.26,.64,1); }
+@keyframes aiPop { from { opacity: 0; transform: scale(.94) translateY(8px); } to { opacity: 1; transform: none; } }
+.ai-modal-hdr { background: var(--gradient); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; }
+.ai-modal-hdr h3 { font-size: 15px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px; }
+.ai-modal-close { background: rgba(255,255,255,.18); border: none; cursor: pointer; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #fff; transition: background .14s; }
+.ai-modal-close:hover { background: rgba(255,255,255,.32); }
+.ai-modal-body { padding: 20px 22px; max-height: 65vh; overflow-y: auto; }
+.ai-section { margin-bottom: 12px; padding: 12px 14px; border-radius: 8px; border-left: 4px solid; }
+.ai-section:last-of-type { margin-bottom: 0; }
+.ai-section.coverage { background: #F0F4FF; border-color: #4F7FE8; }
+.ai-section.industry { background: #FFF8E6; border-color: #D4A338; }
+.ai-section.beone { background: #FDF0EE; border-color: var(--beone-red, #E04028); }
+.ai-section h4 { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; margin-bottom: 5px; }
+.ai-section.coverage h4 { color: #2D5BC4; }
+.ai-section.industry h4 { color: #A86C00; }
+.ai-section.beone h4 { color: #C0321E; }
+.ai-section p { font-size: 12.5px; color: #4B5767; line-height: 1.65; }
+.ai-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.ai-tag { background: #EDF2F9; color: #1C3858; font-size: 10.5px; font-weight: 500; padding: 3px 10px; border-radius: 20px; }
+.ai-loading { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 24px 0; }
+.ai-spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--purple); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.ai-loading p { font-size: 12.5px; color: var(--text-mid); font-style: italic; }
+
+/* FOOTER */
+.footer { text-align: right; padding: 12px 32px; font-size: 11px; color: var(--text-light); border-top: 1px solid var(--border); background: #fff; }
+.footer strong { color: var(--purple); }
+
+/* TIMELINE BAR */
+.timeline-bar { display: flex; gap: 3px; height: 40px; align-items: flex-end; margin: 10px 0; }
+.tbar-col { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1; }
+.tbar-fill { width: 100%; border-radius: 4px 4px 0 0; background: var(--gradient-bar); transition: height .5s; }
+.tbar-label { font-size: 9px; color: var(--text-mid); text-align: center; }
+.tbar-val { font-size: 10px; font-weight: 700; color: var(--text); }
+
+/* CRISIS ITEMS */
+.crisis-item { display: flex; gap: 14px; padding: 16px; border-radius: 12px; border: 1px solid; margin-bottom: 10px; }
+.crisis-item.high { background: linear-gradient(135deg, #fff5f5, #fff); border-color: #fca5a5; }
+.crisis-item.med { background: linear-gradient(135deg, #fffbea, #fff); border-color: #fcd34d; }
+.crisis-item.watch { background: linear-gradient(135deg, #f0f4ff, #fff); border-color: #93c5fd; }
+.crisis-icon { font-size: 22px; flex-shrink: 0; }
+.crisis-body h4 { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 5px; }
+.crisis-body p { font-size: 12px; color: var(--text-mid); line-height: 1.6; }
+.crisis-meta { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+.crisis-tag { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 5px; text-transform: uppercase; }
+.crisis-item.high .crisis-tag { background: var(--red); color: #fff; }
+.crisis-item.med .crisis-tag { background: var(--amber); color: #fff; }
+.crisis-item.watch .crisis-tag { background: var(--beone-navy); color: #fff; }
+.crisis-date { font-size: 10px; color: var(--text-light); }
+
+/* Exec editable styles */
+.exec-editable:focus { border-color: #D32E27 !important; background: #fff !important; cursor: text; }
+.exec-editable { transition: border-color .2s, background .2s; cursor: text; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <h1>BeOne Medicines — Executive Intelligence Dashboard</h1>
+    <p>Media Intelligence · March 23–27, 2026 · 143 articles · 5 daily reports · 9 sections</p>
+  </div>
+  <div class="header-tags">
+    <span class="htag htag-outline">📅 Week of Mar 23–27</span>
+    <span class="htag htag-fill">🔴 3 Active Risks</span>
+  </div>
+</div>
+
+<!-- TOP NAV -->
+<div class="top-nav">
+  <button class="top-tab active" onclick="switchTopTab('weekly')" id="top-weekly">📊 Weekly Analysis</button>
+  <button class="top-tab" onclick="switchTopTab('daily')" id="top-daily">📅 Daily Monitoring</button>
+</div>
+
+<!-- ═══ WEEKLY ANALYSIS PANE ═══ -->
+<div class="top-pane active" id="topPane-weekly">
+  <nav class="sidebar-nav">
+    <div class="sidebar-label">Navigation</div>
+    <button class="side-tab active" onclick="switchSection('overview')" id="sidetab-overview"><span class="tab-icon">📊</span> Weekly Overview</button>
+    <button class="side-tab" onclick="switchSection('themes')" id="sidetab-themes"><span class="tab-icon">🏷️</span> Themes & Sentiment</button>
+    <button class="side-tab" onclick="switchSection('voices')" id="sidetab-voices"><span class="tab-icon">✍️</span> Publications & Authors</button>
+    <button class="side-tab" onclick="switchSection('crisis')" id="sidetab-crisis"><span class="tab-icon">⚠️</span> Crisis & Risk</button>
+    <button class="side-tab" onclick="switchSection('exec')" id="sidetab-exec"><span class="tab-icon">📋</span> Executive Summary</button>
+  </nav>
+  <div class="content-area" id="weekly-content">
+
+<!-- ═══════════════════ TAB 1: OVERVIEW ═══════════════════ -->
+<div class="section" id="sec-overview">
+  <div class="sec-head">
+    <h2>Weekly <span>Media Overview</span></h2>
+    <p>BeOne Medicines earned media performance, March 23–27, 2026 — 5 daily reports analysed</p>
+    <div class="sec-underline"></div>
+  </div>
+
+  <!-- KPI STRIP -->
+  <div class="kpi-strip">
+    <div class="kpi-card" onclick="openModal('kpi-volume')">
+      <div class="kpi-icon">📰</div>
+      <div class="kv purple">143</div>
+      <div class="klabel">Total Articles</div>
+      <div class="ksub">~29 per day average</div>
+      <div class="ktag neutral">↑ Thursday peak: 32</div>
+    </div>
+    <div class="kpi-card" onclick="openModal('kpi-sentiment')">
+      <div class="kpi-icon">💚</div>
+      <div class="kv green">56</div>
+      <div class="klabel">Positive Articles</div>
+      <div class="ksub">39% of total coverage</div>
+      <div class="ktag up">↑ Strong commercial driver</div>
+    </div>
+    <div class="kpi-card" onclick="openModal('kpi-negative')">
+      <div class="kpi-icon">🔴</div>
+      <div class="kv red">12</div>
+      <div class="klabel">Negative Articles</div>
+      <div class="ksub">8% of total coverage</div>
+      <div class="ktag dn">3 crisis items flagged</div>
+    </div>
+    <div class="kpi-card" onclick="openModal('kpi-revenue')">
+      <div class="kpi-icon">💰</div>
+      <div class="kv green">$3.93B</div>
+      <div class="klabel">Brukinsa Global Revenue</div>
+      <div class="ksub">+48.6% YoY — record</div>
+      <div class="ktag up">↑ 1st profitable year</div>
+    </div>
+    <div class="kpi-card" onclick="openModal('kpi-pubs')">
+      <div class="kpi-icon">📡</div>
+      <div class="kv purple">8+</div>
+      <div class="klabel">Tier 1 Publications</div>
+      <div class="ksub">Pink Sheet, STAT, Endpoints…</div>
+      <div class="ktag neutral">High strategic reach</div>
+    </div>
+  </div>
+
+  <!-- DAILY VOLUME CARD -->
+  <div class="grid-2">
+    <div class="card" onclick="openModal('daily-volume')">
+      <div class="card-head">
+        <div class="card-head-left">
+          <h4>📅 Daily Article Volume — March 23–27</h4>
+          <p>Peak Thursday driven by landmark BeiGene financials</p>
+        </div>
+        <button class="ai-btn" onclick="openModal('daily-volume');event.stopPropagation()">✦ AI Insights</button>
+      </div>
+      <div id="vol-timeline" style="margin:12px 0 4px"></div>
+      <div class="gap-box green" style="margin-top:14px"><strong>Key finding:</strong> No single day fell below 26 articles — sustained media interest across a non-conference week is atypical and signals BeOne's growing news-generating capacity.</div>
+    </div>
+
+    <!-- SENTIMENT DONUT -->
+    <div class="card" onclick="openModal('sentiment-split')">
+      <div class="card-head">
+        <div class="card-head-left">
+          <h4>🟢 Weekly Sentiment Split</h4>
+          <p>56 positive · 75 neutral · 12 negative</p>
+        </div>
+        <button class="ai-btn" onclick="openModal('sentiment-split');event.stopPropagation()">✦ AI Insights</button>
+      </div>
+      <div id="sent-trendline" style="margin:4px 0 8px"></div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:4px">
+        <span class="legend-row" style="display:flex;align-items:center;gap:6px"><span class="legend-dot" style="background:#059669;width:10px;height:10px;border-radius:50%;display:inline-block"></span><span style="font-weight:700;color:#059669">56</span>&nbsp;<span style="color:var(--text-mid);font-size:12px">Positive (39%)</span></span>
+        <span class="legend-row" style="display:flex;align-items:center;gap:6px"><span class="legend-dot" style="background:#d97706;width:10px;height:10px;border-radius:50%;display:inline-block"></span><span style="font-weight:700;color:#d97706">75</span>&nbsp;<span style="color:var(--text-mid);font-size:12px">Neutral (52%)</span></span>
+        <span class="legend-row" style="display:flex;align-items:center;gap:6px"><span class="legend-dot" style="background:#CC0000;width:10px;height:10px;border-radius:50%;display:inline-block"></span><span style="font-weight:700;color:#CC0000">12</span>&nbsp;<span style="color:var(--text-mid);font-size:12px">Negative (8%)</span></span>
+      </div>
+      <div class="gap-box green"><strong>Strong ratio:</strong> 39% positive vs 8% negative reflects a landmark commercial week. Neutral density driven by policy/regulatory context coverage.</div>
+    </div>
+  </div>
+
+  <!-- SECTION BREAKDOWN -->
+  <div class="card" style="margin-bottom:16px" onclick="openModal('sections')">
+    <div class="card-head">
+      <div class="card-head-left">
+        <h4>📂 Coverage Section Breakdown — 143 Articles</h4>
+        <p>BeOne Announcements dominated at 31 articles (22% of total)</p>
+      </div>
+      <button class="ai-btn" onclick="openModal('sections');event.stopPropagation()">✦ AI Insights</button>
+    </div>
+    <div id="section-bars"></div>
+  </div>
+
+  <!-- EXECUTIVE SIGNAL PANEL -->
+  <div class="insight-panel">
+    <div class="insight-panel-head">
+      <h3>⚡ Executive <span>Signal Panel</span></h3>
+      <button class="ai-btn" onclick="openModal('signals')">✦ Full AI Briefing</button>
+    </div>
+    <div class="insight-grid">
+      <div class="ins-item" onclick="openModal('sig-rev')"><div class="ins-tag pos">● POSITIVE</div><p>BeiGene's first-ever $287M annual profit + Brukinsa $3.93B (+48.6%). Landmark institutional signal driving buy-side conviction.</p></div>
+      <div class="ins-item" onclick="openModal('sig-asco')"><div class="ins-tag pos">● POSITIVE</div><p>Tislelizumab formally included in ASCO first-line GEA cancer guidelines — critical HCP prescribing and payer credentialing milestone.</p></div>
+      <div class="ins-item" onclick="openModal('sig-wolfe')"><div class="ins-tag info">● NOTABLE</div><p>Wolfe Research initiates Buy rating on $BGNE via Kalpit Patel — fresh coverage start with Brukinsa CLL leadership as core thesis.</p></div>
+      <div class="ins-item" onclick="openModal('sig-btk')"><div class="ins-tag info">● PIPELINE</div><p>BTK degrader BGB-16673 + sonrotoclax Phase 3 plans revealed by Haematology CMO — positions BeOne as next-gen BTKi frontrunner.</p></div>
+      <div class="ins-item" onclick="openModal('sig-fda')"><div class="ins-tag neg">● RISK</div><p>FDA OPDP Untitled Letter for Brukinsa DTC TV ad — inadequate risk disclosure. Stock impact −3.5%, recovered within 2 trading days.</p></div>
+      <div class="ins-item" onclick="openModal('sig-harmoni')"><div class="ins-tag watch">⚠ WATCH</div><p>Akeso HARMONi-6: ivonescimab superiority over tislelizumab in sq. NSCLC. Biomarker-differentiated response strategy required.</p></div>
+    </div>
+  </div>
+
+  <!-- VERBATIM EVIDENCE -->
+  <div class="verbatim-grid">
+    <div class="verbatim-card pos">
+      <div class="v-tag">✅ Positive Signal — Commercial Milestone</div>
+      <div class="v-text">"BeiGene (now BeOne Medicines) reported its first-ever full-year profit, with Brukinsa achieving $3.93 billion in global revenue — a 48.6% year-over-year increase — marking a transformation from R&D-stage challenger to a scaled, profitable oncology franchise."</div>
+      <div class="v-meta">📰 Multiple outlets — Thursday March 27, 2026 · BeiGene FY2025 Results</div>
+    </div>
+    <div class="verbatim-card neg">
+      <div class="v-tag">🔴 Risk Signal — Regulatory Action</div>
+      <div class="v-text">"FDA's Office of Prescription Drug Promotion cited a Brukinsa television commercial for creating the impression patients could safely engage in extended travel without adequately conveying risks — requiring corrective action from regulatory and medical affairs."</div>
+      <div class="v-meta">📰 Gardner Law News — Wednesday March 25, 2026 · Action: Regulatory / Medical Affairs</div>
+    </div>
+  </div>
+
+  <!-- BRAND THEMES CHIP CLOUD -->
+  <div class="card" style="cursor:default">
+    <div class="card-head">
+      <div class="card-head-left">
+        <h4>🔑 Key Topics This Week</h4>
+        <p>Dominant narrative themes across 143 articles</p>
+      </div>
+    </div>
+    <div class="chip-cloud">
+      <span class="chip purple">Brukinsa · 24 mentions</span>
+      <span class="chip purple">Tislelizumab · 21 mentions</span>
+      <span class="chip grey">Clinical Trial Data · 19</span>
+      <span class="chip grey">BTK Inhibitors · 17</span>
+      <span class="chip amber">FDA / Regulatory · 14</span>
+      <span class="chip grey">China Biotech · 13</span>
+      <span class="chip green">Pipeline & R&D · 12</span>
+      <span class="chip grey">Partnerships · 11</span>
+      <span class="chip red">Drug Pricing · 9</span>
+      <span class="chip pink">AI in Oncology · 7</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ TAB 2: THEMES & SENTIMENT ═══════════════════ -->
+<div class="section" id="sec-themes">
+  <div class="sec-head">
+    <h2>Themes & <span>Sentiment Analysis</span></h2>
+    <p>What dominated BeOne's earned media footprint — March 23–27, 2026</p>
+    <div class="sec-underline"></div>
+  </div>
+
+  <!-- KPI STRIP -->
+  <div class="kpi-strip">
+    <div class="kpi-card" onclick="openModal('theme-brukinsa')">
+      <div class="kpi-icon">💊</div>
+      <div class="kv purple">24</div>
+      <div class="klabel">Brukinsa Mentions</div>
+      <div class="ksub">#1 brand theme this week</div>
+      <div class="ktag up">↑ Revenue + ASCO</div>
+    </div>
+    <div class="kpi-card" onclick="openModal('theme-tislelizumab')">
+      <div class="kpi-icon">🧬</div>
+      <div class="kv purple">21</div>
+      <div class="klabel">Tislelizumab Mentions</div>
+      <div class="ksub">ASCO guideline + trial data</div>
+      <div class="ktag neutral">Mixed (ASCO + HARMONi-6)</div>
+    </div>
+    <div class="kpi-card" onclick="openModal('theme-fda')">
+      <div class="kpi-icon">🏛️</div>
+      <div class="kv amber">14</div>
+      <div class="klabel">FDA/Regulatory Topics</div>
+      <div class="ksub">OPDP + orphan drug + PDUFA</div>
+      <div class="ktag dn">Requires monitoring</div>
+    </div>
+    <div class="kpi-card" onclick="openModal('theme-china')">
+      <div class="kpi-icon">🌏</div>
+      <div class="kv">13</div>
+      <div class="klabel">China Biotech Coverage</div>
+      <div class="ksub">US-China competition focus</div>
+      <div class="ktag neutral">Geopolitical context</div>
+    </div>
+    <div class="kpi-card" onclick="openModal('theme-pipeline')">
+      <div class="kpi-icon">🔬</div>
+      <div class="kv green">12</div>
+      <div class="klabel">Pipeline & R&D Mentions</div>
+      <div class="ksub">BTK degrader + BGB-B2033</div>
+      <div class="ktag up">↑ Phase 3 pipeline news</div>
+    </div>
+  </div>
+
+  <!-- THEME FREQUENCY BARS -->
+  <div class="card" style="margin-bottom:16px" onclick="openModal('all-themes')">
+    <div class="card-head">
+      <div class="card-head-left">
+        <h4>🏷️ Theme Frequency — Week of March 23–27</h4>
+        <p>Ranked by total mentions across all 143 articles</p>
+      </div>
+      <button class="ai-btn" onclick="openModal('all-themes');event.stopPropagation()">✦ AI Insights</button>
+    </div>
+    <div id="theme-bars"></div>
+    <div class="gap-box purple"><strong>Narrative dominance:</strong> Brukinsa and Tislelizumab together account for 45 of 147 tracked theme mentions — BeOne's two lead assets monopolise its own media narrative, leaving limited share-of-voice for pipeline assets or corporate positioning.</div>
+  </div>
+
+  <!-- DAILY SENTIMENT -->
+  <div class="grid-2">
+    <div class="card" onclick="openModal('daily-sent')">
+      <div class="card-head">
+        <div class="card-head-left">
+          <h4>📅 Daily Sentiment — Mon–Fri</h4>
+          <p>Thursday strongest overall; Friday best positive ratio</p>
+        </div>
+        <button class="ai-btn" onclick="openModal('daily-sent');event.stopPropagation()">✦ AI Insights</button>
+      </div>
+      <div id="daily-sent-bars"></div>
+    </div>
+
+    <!-- BRAND THEMES BREAKDOWN -->
+    <div class="card" onclick="openModal('brand-vs-industry')">
+      <div class="card-head">
+        <div class="card-head-left">
+          <h4>🎯 BeOne vs Industry Context Themes</h4>
+          <p>Brand-driven vs environment-driven coverage</p>
+        </div>
+        <button class="ai-btn" onclick="openModal('brand-vs-industry');event.stopPropagation()">✦ AI Insights</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;flex:1">
+        <div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--purple);margin-bottom:10px;display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:10px;height:2px;background:var(--gradient-bar);border-radius:1px"></span>BeOne Brand Themes</div>
+          <div class="bar-row" style="margin-bottom:11px"><span class="bar-label">Brukinsa</span><div class="bar-wrap" style="height:12px"><div class="bar-fill" style="width:100%"></div></div><span class="bar-nums">24</span></div>
+          <div class="bar-row" style="margin-bottom:11px"><span class="bar-label">Tislelizumab</span><div class="bar-wrap" style="height:12px"><div class="bar-fill" style="width:88%"></div></div><span class="bar-nums">21</span></div>
+          <div class="bar-row" style="margin-bottom:11px"><span class="bar-label">Clinical Trials</span><div class="bar-wrap" style="height:12px"><div class="bar-fill" style="width:79%"></div></div><span class="bar-nums">19</span></div>
+          <div class="bar-row" style="margin-bottom:11px"><span class="bar-label">BTK Inhibitors</span><div class="bar-wrap" style="height:12px"><div class="bar-fill" style="width:71%"></div></div><span class="bar-nums">17</span></div>
+          <div class="bar-row"><span class="bar-label">Pipeline & R&D</span><div class="bar-wrap" style="height:12px"><div class="bar-fill" style="width:50%"></div></div><span class="bar-nums">12</span></div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--beone-navy);margin-bottom:10px;display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:10px;height:2px;background:var(--gradient-bar2);border-radius:1px"></span>Industry Context Themes</div>
+          <div class="bar-row" style="margin-bottom:11px"><span class="bar-label">FDA/Regulatory</span><div class="bar-wrap" style="height:12px"><div class="bar-fill bar2" style="width:100%"></div></div><span class="bar-nums">14</span></div>
+          <div class="bar-row" style="margin-bottom:11px"><span class="bar-label">China Biotech</span><div class="bar-wrap" style="height:12px"><div class="bar-fill bar2" style="width:93%"></div></div><span class="bar-nums">13</span></div>
+          <div class="bar-row" style="margin-bottom:11px"><span class="bar-label">Partnerships</span><div class="bar-wrap" style="height:12px"><div class="bar-fill bar2" style="width:79%"></div></div><span class="bar-nums">11</span></div>
+          <div class="bar-row" style="margin-bottom:11px"><span class="bar-label">Drug Pricing</span><div class="bar-wrap" style="height:12px"><div class="bar-fill bar2" style="width:64%"></div></div><span class="bar-nums">9</span></div>
+          <div class="bar-row"><span class="bar-label">AI in Oncology</span><div class="bar-wrap" style="height:12px"><div class="bar-fill bar2" style="width:50%"></div></div><span class="bar-nums">7</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIGNAL PANEL -->
+  <div class="insight-panel">
+    <div class="insight-panel-head">
+      <h3>⚡ Sentiment <span>Signal Breakdown</span></h3>
+    </div>
+    <div class="insight-grid">
+      <div class="ins-item" onclick="openModal('pos-revenue')"><div class="ins-tag pos">● POSITIVE DRIVER</div><p>Record BeiGene FY2025 financials drove largest single positive sentiment spike on Thursday — 14 positive articles in one day.</p></div>
+      <div class="ins-item" onclick="openModal('pos-asco2')"><div class="ins-tag pos">● POSITIVE DRIVER</div><p>ASCO GEA guideline inclusion of tislelizumab was Wednesday's dominant positive — commercially highest-impact media placement of the week.</p></div>
+      <div class="ins-item" onclick="openModal('watch-harmoni')"><div class="ins-tag watch">⚠ COMPETITIVE WATCH</div><p>HARMONi-6 registered as neutral (competitive awareness, not crisis) — but requires proactive biomarker-strategy response from lung cancer team.</p></div>
+      <div class="ins-item" onclick="openModal('neg-fda2')"><div class="ins-tag neg">● RISK</div><p>OPDP Untitled Letter was Wednesday's primary crisis. Social reframing of −3.5% stock recovery helped contain negative narrative spread.</p></div>
+      <div class="ins-item" onclick="openModal('info-pricing')"><div class="ins-tag watch">⚠ MONITOR</div><p>P4AD report citing Brukinsa at $14K/month patient cost burden — drug pricing access theme requires proactive HCP and payer narrative.</p></div>
+      <div class="ins-item" onclick="openModal('pos-ai')"><div class="ins-tag info">● NOTABLE</div><p>Patient Advocacy AI Innovation Lab launch established BeOne as thought leader at oncology-AI intersection — strong corporate reputation signal.</p></div>
+    </div>
+  </div>
+
+  <!-- VERBATIM -->
+  <div class="verbatim-grid">
+    <div class="verbatim-card pos">
+      <div class="v-tag">✅ Tuesday — Strongest Positive Day (12 positive articles)</div>
+      <div class="v-text">"BGB-B2033 received FDA Orphan Drug Designation in hepatocellular carcinoma, DualityBio partnership cited at $6B+ valuation, and Clare Fisher was nominated to BeOne's Board — three commercially significant positive signals concentrated in a single day."</div>
+      <div class="v-meta">📊 Synthesis of Tuesday March 24, 2026 coverage · 12 pos / 15 neut / 3 neg</div>
+    </div>
+    <div class="verbatim-card neg">
+      <div class="v-tag">🔴 Wednesday — Week's Primary Crisis Day</div>
+      <div class="v-text">"The FDA OPDP Untitled Letter for the Brukinsa DTC television ad landed as Wednesday's dominant crisis narrative — but was counter-balanced by tislelizumab's ASCO guideline inclusion, limiting broader sentiment contagion."</div>
+      <div class="v-meta">📊 Synthesis of Wednesday March 25, 2026 coverage · 9 pos / 16 neut / 2 neg</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ TAB 3: PUBLICATIONS & AUTHORS ═══════════════════ -->
+<div class="section" id="sec-voices">
+  <div class="sec-head">
+    <h2>Publications <span>& Author Intelligence</span></h2>
+    <p>Who wrote about BeOne and where the most influential coverage appeared</p>
+    <div class="sec-underline"></div>
+  </div>
+
+  <!-- KPI STRIP -->
+  <div class="kpi-strip">
+    <div class="kpi-card" onclick="openModal('pub-tier1')">
+      <div class="kpi-icon">🏆</div>
+      <div class="kv purple">Tier 1</div>
+      <div class="klabel">Pink Sheet · STAT · Endpoints</div>
+      <div class="ksub">Regulatory + C-suite reach</div>
+      <div class="ktag neutral">Highest strategic impact</div>
+    </div>
+    <div class="kpi-card" onclick="openModal('pub-pink')">
+      <div class="kpi-icon">📰</div>
+      <div class="kv purple">8</div>
+      <div class="klabel">Pink Sheet Articles</div>
+      <div class="ksub">Top publication this week</div>
+      <div class="ktag neutral">Policy + regulatory focus</div>
+    </div>
+    <div class="kpi-card" onclick="openModal('pub-onclive')">
+      <div class="kpi-icon">🏥</div>
+      <div class="kv">7</div>
+      <div class="klabel">OncLive Articles</div>
+      <div class="ksub">Top HCP-facing outlet</div>
+      <div class="ktag up">↑ Prescribing influence</div>
+    </div>
+    <div class="kpi-card" onclick="openModal('auth-armstrong')">
+      <div class="kpi-icon">✍️</div>
+      <div class="kv purple">3</div>
+      <div class="klabel">Madeleine Armstrong</div>
+      <div class="ksub">Top author · Oncology Pipeline</div>
+      <div class="ktag up">↑ CMO interview secured</div>
+    </div>
+    <div class="kpi-card" onclick="openModal('auth-kol')">
+      <div class="kpi-icon">🩺</div>
+      <div class="kv green">1</div>
+      <div class="klabel">KOL-Authored Review</div>
+      <div class="ksub">Dr. Ajani — Medscape ESCC</div>
+      <div class="ktag up">↑ 3.5M HCP reach</div>
+    </div>
+  </div>
+
+  <!-- PUBLICATION BARS -->
+  <div class="grid-2">
+    <div class="card" onclick="openModal('all-pubs')">
+      <div class="card-head">
+        <div class="card-head-left">
+          <h4>📰 Top Publications by Article Count</h4>
+          <p>Week of March 23–27, 2026</p>
+        </div>
+        <button class="ai-btn" onclick="openModal('all-pubs');event.stopPropagation()">✦ AI Insights</button>
+      </div>
+      <div class="bar-row"><span class="bar-label">Pink Sheet</span><div class="bar-wrap"><div class="bar-fill" style="width:100%"></div></div><span class="bar-nums">8</span></div>
+      <div class="bar-row"><span class="bar-label">OncLive</span><div class="bar-wrap"><div class="bar-fill" style="width:87%"></div></div><span class="bar-nums">7</span></div>
+      <div class="bar-row"><span class="bar-label">Seeking Alpha</span><div class="bar-wrap"><div class="bar-fill" style="width:75%"></div></div><span class="bar-nums">6</span></div>
+      <div class="bar-row"><span class="bar-label">Endpoints News</span><div class="bar-wrap"><div class="bar-fill" style="width:62%"></div></div><span class="bar-nums">5</span></div>
+      <div class="bar-row"><span class="bar-label">BioSpace</span><div class="bar-wrap"><div class="bar-fill" style="width:62%"></div></div><span class="bar-nums">5</span></div>
+      <div class="bar-row"><span class="bar-label">The ASCO Post</span><div class="bar-wrap"><div class="bar-fill" style="width:62%"></div></div><span class="bar-nums">5</span></div>
+      <div class="bar-row"><span class="bar-label">Oncology Pipeline</span><div class="bar-wrap"><div class="bar-fill" style="width:50%"></div></div><span class="bar-nums">4</span></div>
+      <div class="bar-row"><span class="bar-label">TipRanks</span><div class="bar-wrap"><div class="bar-fill" style="width:50%"></div></div><span class="bar-nums">4</span></div>
+      <div class="gap-box purple"><strong>Tier 1 dominance:</strong> Pink Sheet + ASCO Post alone = 13 articles to senior regulatory decision-makers, KOLs, and payers — the highest-value audience segment for BeOne's commercial strategy.</div>
+    </div>
+
+    <!-- AUTHORS -->
+    <div class="card" onclick="openModal('all-authors')">
+      <div class="card-head">
+        <div class="card-head-left">
+          <h4>✍️ Top Authors & Analysts</h4>
+          <p>By article count — with intelligence value rating</p>
+        </div>
+        <button class="ai-btn" onclick="openModal('all-authors');event.stopPropagation()">✦ AI Insights</button>
+      </div>
+      <table class="score-table">
+        <thead>
+          <tr><th>Author</th><th>Outlet</th><th>Articles</th><th>Focus</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>M. Armstrong</strong></td><td style="color:var(--text-mid);font-size:12px">Oncology Pipeline</td><td><strong style="color:var(--purple)">3</strong></td><td><span class="chip green" style="font-size:10px;padding:2px 8px">CMO interview</span></td></tr>
+          <tr><td><strong>D. Gingery</strong></td><td style="color:var(--text-mid);font-size:12px">Pink Sheet</td><td><strong style="color:var(--purple)">3</strong></td><td><span class="chip amber" style="font-size:10px;padding:2px 8px">Regulatory</span></td></tr>
+          <tr><td><strong>A. Armstrong</strong></td><td style="color:var(--text-mid);font-size:12px">BioSpace</td><td><strong>2</strong></td><td><span class="chip grey" style="font-size:10px;padding:2px 8px">Industry macro</span></td></tr>
+          <tr><td><strong>M. Bayer</strong></td><td style="color:var(--text-mid);font-size:12px">Endpoints News</td><td><strong>2</strong></td><td><span class="chip red" style="font-size:10px;padding:2px 8px">Geopolitics</span></td></tr>
+          <tr><td><strong>E. Silverman</strong></td><td style="color:var(--text-mid);font-size:12px">STAT News</td><td><strong>2</strong></td><td><span class="chip grey" style="font-size:10px;padding:2px 8px">Investigative</span></td></tr>
+          <tr><td><strong>Xu Hu</strong></td><td style="color:var(--text-mid);font-size:12px">Pink Sheet / Scrip</td><td><strong>2</strong></td><td><span class="chip purple" style="font-size:10px;padding:2px 8px">China biotech</span></td></tr>
+          <tr><td><strong>Dr. J. Ajani</strong></td><td style="color:var(--text-mid);font-size:12px">Medscape</td><td><strong>1</strong></td><td><span class="chip green" style="font-size:10px;padding:2px 8px">KOL review</span></td></tr>
+          <tr><td><strong>K. Patel</strong></td><td style="color:var(--text-mid);font-size:12px">Wolfe Research</td><td><strong>1</strong></td><td><span class="chip green" style="font-size:10px;padding:2px 8px">Buy initiation</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PUBLICATION TIER INTELLIGENCE -->
+  <div class="card" style="cursor:default;margin-bottom:16px">
+    <div class="card-head">
+      <div class="card-head-left">
+        <h4>🎯 Coverage Tier Intelligence</h4>
+        <p>Strategic reach and audience impact by publication tier</p>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+      <div style="padding:14px;background:#fff5f5;border-radius:10px;border:1px solid #fca5a5">
+        <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--red);margin-bottom:8px">Tier 1 — Premium Subscription</div>
+        <div style="font-size:12px;color:var(--text-mid);line-height:1.6">Pink Sheet, Scrip Intelligence, Endpoints News, STAT News. Reaches C-suite, regulators, institutional investors. Highest strategic impact — shapes industry narratives and policy.</div>
+      </div>
+      <div style="padding:14px;background:#fff7ed;border-radius:10px;border:1px solid #fed7aa">
+        <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--amber);margin-bottom:8px">Tier 2 — Clinical & HCP</div>
+        <div style="font-size:12px;color:var(--text-mid);line-height:1.6">OncLive, The ASCO Post, Medscape, Targeted Oncology. Reaches oncologists and haematologists who prescribe Brukinsa and tislelizumab. Directly drives HCP prescribing behaviour.</div>
+      </div>
+      <div style="padding:14px;background:#f0fdf4;border-radius:10px;border:1px solid #a7f3d0">
+        <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--green);margin-bottom:8px">Tier 3 — Trade & Financial</div>
+        <div style="font-size:12px;color:var(--text-mid);line-height:1.6">BioSpace, TipRanks, Oncology Pipeline, FiercePharma. Reaches retail & institutional investors, BD teams. Drives $BGNE market perception and deal interest.</div>
+      </div>
+    </div>
+  </div>
+
+
+
+</div>
+
+<!-- ═══════════════════ TAB 4: CRISIS & RISK ═══════════════════ -->
+<div class="section" id="sec-crisis">
+  <div class="sec-head">
+    <h2>Crisis & <span>Risk Monitor</span></h2>
+    <p>Items requiring immediate action from communications, regulatory, or market access teams</p>
+    <div class="sec-underline"></div>
+  </div>
+
+  <!-- KPI STRIP -->
+  <div class="kpi-strip">
+    <div class="kpi-card">
+      <div class="kpi-icon">🔴</div>
+      <div class="kv red">2</div>
+      <div class="klabel">High Priority</div>
+      <div class="ksub">Immediate action required</div>
+      <div class="ktag dn">FDA + G-BA</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">🟡</div>
+      <div class="kv amber">1</div>
+      <div class="klabel">Medium Priority</div>
+      <div class="ksub">Monitor & respond</div>
+      <div class="ktag neutral">HIRA South Korea</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">🔵</div>
+      <div class="kv">1</div>
+      <div class="klabel">Competitive Watch</div>
+      <div class="ksub">Strategic awareness</div>
+      <div class="ktag neutral">HARMONi-6</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">✅</div>
+      <div class="kv green">0</div>
+      <div class="klabel">Resolved This Week</div>
+      <div class="ksub">No items closed</div>
+      <div class="ktag neutral">All items open</div>
+    </div>
+    <div class="kpi-card" onclick="openModal('stock-impact')">
+      <div class="kpi-icon">📉</div>
+      <div class="kv amber">−3.5%</div>
+      <div class="klabel">Brukinsa Stock Impact</div>
+      <div class="ksub">OPDP letter · recovered 2 days</div>
+      <div class="ktag up">↑ Contained</div>
+    </div>
+  </div>
+
+  <!-- CRISIS ITEMS -->
+  <div class="card" style="cursor:default;margin-bottom:16px">
+    <div class="card-head" style="margin-bottom:16px">
+      <div class="card-head-left">
+        <h4>🚨 Active Crisis & Risk Register</h4>
+        <p>March 2026 — requiring escalation to senior leadership</p>
+      </div>
+      <button class="ai-btn" onclick="openModal('crisis-full')">✦ Full AI Briefing</button>
+    </div>
+
+    <div class="crisis-item high">
+      <div class="crisis-icon">⚠️</div>
+      <div class="crisis-body">
+        <h4>FDA OPDP Untitled Letter — Brukinsa DTC Television Ad</h4>
+        <p>FDA's Office of Prescription Drug Promotion cited the Brukinsa TV commercial for (1) creating the impression patients could safely engage in extended travel without adequately conveying risks, and (2) imbalanced presentation of the major benefit statement. Corrective action required from regulatory and medical affairs. Stock declined only −3.5% and fully recovered within two trading days — consistent with precedent at Eli Lilly, Novo Nordisk, and HIMS (2025).</p>
+        <div class="crisis-meta"><span class="crisis-tag">High Priority</span><span class="crisis-date">Mar 25 · Gardner Law News · Action: Regulatory / Medical Affairs</span></div>
+      </div>
+    </div>
+
+    <div class="crisis-item high">
+      <div class="crisis-icon">🇩🇪</div>
+      <div class="crisis-body">
+        <h4>G-BA "Not Proven" — Tevimbra in First-Line ES-SCLC (Germany)</h4>
+        <p>Germany's Federal Joint Committee rated Tevimbra's added benefit as "Not Proven" for first-line ES-SCLC because RATIONALE 312 used chemotherapy alone rather than the AMNOG-defined comparator. Reimbursement at list price EUR 1,723.42 per 100mg is now at risk. A redesigned comparator strategy and early G-BA scientific dialogue will be required for future submissions.</p>
+        <div class="crisis-meta"><span class="crisis-tag">High Priority</span><span class="crisis-date">Mar 23 · Navlin Daily · Action: Market Access / HEOR Germany</span></div>
+      </div>
+    </div>
+
+    <div class="crisis-item med">
+      <div class="crisis-icon">🇰🇷</div>
+      <div class="crisis-body">
+        <h4>HIRA Cancer Committee Reimbursement Denial — Tevimbra (South Korea)</h4>
+        <p>South Korea's 10th Cancer Disease Review Committee denied coverage for Tevimbra. This is a significant Asia-Pacific market access setback — South Korea's HIRA decisions often influence broader APAC HTA assessments. A revised local HEOR dossier and structured resubmission through HIRA's appeal process is recommended alongside patient advocacy engagement.</p>
+        <div class="crisis-meta"><span class="crisis-tag">Medium Priority</span><span class="crisis-date">Mar 26 · Archynewsy · Action: Market Access APAC / HEOR</span></div>
+      </div>
+    </div>
+
+    <div class="crisis-item watch">
+      <div class="crisis-icon">🔬</div>
+      <div class="crisis-body">
+        <h4>Competitive Watch — Ivonescimab Superiority Over Tislelizumab (HARMONi-6)</h4>
+        <p>Akeso's 2025 results confirmed ivonescimab demonstrated superiority over tislelizumab + chemo in first-line squamous NSCLC, and dual PFS/OS positivity in EGFR-TKI resistant NSCLC. ~70,000 patients have now received ivonescimab. BeOne's lung cancer franchise team should sharpen biomarker-differentiated messaging for non-squamous and PD-L1-defined populations where tislelizumab maintains strong positioning.</p>
+        <div class="crisis-meta"><span class="crisis-tag">Competitive Watch</span><span class="crisis-date">Mar 26–27 · Akeso PR / Times.Now · Action: Medical Affairs / Commercial</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIGNAL PANEL -->
+  <div class="insight-panel">
+    <div class="insight-panel-head">
+      <h3>⚡ Risk & <span>Mitigation Signals</span></h3>
+    </div>
+    <div class="insight-grid">
+      <div class="ins-item" onclick="openModal('mit-fda')"><div class="ins-tag neg">● ACTION REQUIRED</div><p>FDA OPDP: Medical affairs must prepare corrective advertising and ensure all DTC materials meet updated risk balance requirements before next broadcast.</p></div>
+      <div class="ins-item" onclick="openModal('mit-gba')"><div class="ins-tag neg">● ACTION REQUIRED</div><p>G-BA Germany: Redesign comparator strategy aligned to AMNOG requirements. Request early G-BA scientific dialogue before next SCLC dossier submission.</p></div>
+      <div class="ins-item" onclick="openModal('mit-hira')"><div class="ins-tag watch">⚠ RESPOND</div><p>HIRA South Korea: Commission revised local HEOR dossier with Korean-specific cost-effectiveness models. Engage patient advocacy groups for resubmission support.</p></div>
+      <div class="ins-item" onclick="openModal('mit-harmoni')"><div class="ins-tag watch">⚠ STRATEGY</div><p>HARMONi-6: Develop differentiated messaging for non-squamous NSCLC and PD-L1-defined sub-populations where tislelizumab data remains robust.</p></div>
+      <div class="ins-item" onclick="openModal('mit-pricing')"><div class="ins-tag info">● MONITOR</div><p>Drug pricing: P4AD citation of $14K/month Brukinsa cost requires proactive patient affordability narrative and PAP program visibility in media outreach.</p></div>
+      <div class="ins-item" onclick="openModal('mit-geo')"><div class="ins-tag info">● MONITOR</div><p>US-China geopolitics: HHS "war on China biotech" rhetoric requires a US-first commercial narrative strategy to insulate BeOne's regulatory standing with FDA.</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ TAB 5: EXEC SUMMARY ═══════════════════ -->
+<div class="section" id="sec-exec">
+  <div class="sec-head">
+    <h2>Executive <span>Summary</span></h2>
+    <p>Strategic narrative for senior leadership — week of March 23–27, 2026</p>
+    <div class="sec-underline"></div>
+  </div>
+
+  <!-- KPI STRIP -->
+  <div class="kpi-strip">
+    <div class="kpi-card">
+      <div class="kpi-icon">📊</div>
+      <div class="kv purple">143</div>
+      <div class="klabel">Total Articles</div>
+      <div class="ksub">5 daily reports analysed</div>
+      <div class="ktag up">↑ Above-average week</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">💰</div>
+      <div class="kv green">$5.34B</div>
+      <div class="klabel">Total BeOne Revenue</div>
+      <div class="ksub">FY2025 · +40.2% YoY</div>
+      <div class="ktag up">↑ First profitable year</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">🧬</div>
+      <div class="kv purple">ASCO</div>
+      <div class="klabel">Guideline Inclusion</div>
+      <div class="ksub">Tislelizumab 1L GEA</div>
+      <div class="ktag up">↑ SOC recognition</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">🚨</div>
+      <div class="kv red">3</div>
+      <div class="klabel">Escalation Items</div>
+      <div class="ksub">FDA · G-BA · HIRA</div>
+      <div class="ktag dn">Immediate action</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">📈</div>
+      <div class="kv green">Buy</div>
+      <div class="klabel">Wolfe Research Rating</div>
+      <div class="ksub">New coverage initiation</div>
+      <div class="ktag up">↑ Institutional signal</div>
+    </div>
+  </div>
+
+  <!-- EXECUTIVE NARRATIVE BLOCKS -->
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px">
+    <div style="background:var(--gradient);padding:20px 24px;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:16px;font-weight:800;color:#fff">📋 Weekly Media Intelligence Summary</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.7);margin-top:3px">March 23–27, 2026 · 5 Reports · 143 Articles</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="ai-btn" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="openModal('exec-ai')">✦ AI Executive Briefing</button>
+        <button id="exec-save-btn" onclick="saveExecSummary()" style="display:flex;align-items:center;gap:5px;padding:6px 14px;border-radius:20px;background:#fff;border:none;font-size:11px;font-weight:700;color:#D32E27;cursor:pointer;font-family:'Inter',sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.15);transition:all .2s">💾 Save Changes</button>
+      </div>
+    </div>
+    <div style="padding:24px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-mid);margin-bottom:8px">Commercial & Pipeline Overview</div>
+      <div class="exec-editable" contenteditable="true" spellcheck="false" style="font-size:13px;line-height:1.82;color:var(--text-mid);padding:12px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);outline:none">BeOne Medicines generated <strong style="color:var(--text)">broadly positive earned media coverage</strong> this week, anchored by landmark commercial milestones and expanding pipeline momentum. <strong style="color:var(--text)">Brukinsa (zanubrutinib)</strong> dominated as the central brand narrative — record-breaking 2025 revenues (+48.6% to $3.93B), BeiGene's first-ever annual profit ($287M net), a Wolfe Research Buy initiation citing Brukinsa's CLL franchise leadership, formal ASCO GEA guideline inclusion, and recognition across multiple outlets as the first Chinese innovative drug to defeat a global blockbuster in a head-to-head Phase 3 trial.</div>
+
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-mid);margin-bottom:8px;margin-top:16px">Tislelizumab / Tevimbra Performance</div>
+      <div class="exec-editable" contenteditable="true" spellcheck="false" style="font-size:13px;line-height:1.82;color:var(--text-mid);padding:12px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);outline:none"><strong style="color:var(--text)">Tislelizumab / Tevimbra</strong> achieved a commercially critical milestone with formal inclusion in ASCO's updated gastroesophageal cancer management guidelines (Mar 25), positioning it alongside pembrolizumab and nivolumab as a standard-of-care first-line option for HER2-negative gastric/GEJ adenocarcinoma. Sustained clinical data coverage appeared across NSCLC, ESCC, HCC, and nasopharyngeal cancer — reinforcing the molecule's multi-indication breadth.</div>
+
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-mid);margin-bottom:8px;margin-top:16px">Risk & Competitive Landscape</div>
+      <div class="exec-editable" contenteditable="true" spellcheck="false" style="font-size:13px;line-height:1.82;color:var(--text-mid);padding:12px 14px;border-radius:8px;border:1.5px solid var(--border);background:#fff5f5;border-left:3px solid var(--red);outline:none">Three items require immediate escalation: an <strong style="color:var(--text)">FDA OPDP Untitled Letter</strong> for Brukinsa's DTC broadcast ad (Mar 25 — contained market impact), <strong style="color:var(--text)">Tevimbra's "Not Proven" G-BA assessment</strong> in Germany for ES-SCLC due to comparator mismatch (Mar 23), and a <strong style="color:var(--text)">HIRA reimbursement denial</strong> in South Korea (Mar 26). The competitive landscape was materially shaped by Akeso's HARMONi-6 data confirming ivonescimab's superiority over tislelizumab in first-line squamous NSCLC.</div>
+    </div>
+  </div>
+
+  <!-- KEY INSIGHT POINTS -->
+  <div class="insight-panel" style="cursor:default">
+    <div class="insight-panel-head">
+      <h3>🔑 Key <span>Insight Points</span></h3>
+    </div>
+    <div class="insight-grid">
+      <div class="ins-item"><div class="ins-tag neg">● RISK</div><p>Brukinsa DTC Warning: FDA OPDP Untitled Letter — inadequate risk disclosure in broadcast advertising. Stock impact −3.5%, recovered within 2 days. (Mar 25)</p></div>
+      <div class="ins-item"><div class="ins-tag neg">● RISK</div><p>Tevimbra G-BA Germany: "Not Proven" rating in ES-SCLC due to AMNOG comparator mismatch. Requires redesigned dossier strategy. (Mar 23)</p></div>
+      <div class="ins-item"><div class="ins-tag neg">● RISK</div><p>South Korea HIRA Denial: Tevimbra reimbursement denied by 10th Cancer Disease Review Committee. APAC market access review needed. (Mar 26)</p></div>
+      <div class="ins-item"><div class="ins-tag pos">● POSITIVE</div><p>Record Revenue Milestone: First-ever profitable year; Brukinsa $3.93B globally (+48.6%); total revenue $5.34B (+40.2%). Landmark institutional signal.</p></div>
+      <div class="ins-item"><div class="ins-tag pos">● POSITIVE</div><p>ASCO Guideline Inclusion: Tislelizumab formally listed in updated first-line GEA cancer guidelines — critical HCP prescribing and payer credentialing milestone. (Mar 25)</p></div>
+      <div class="ins-item"><div class="ins-tag watch">⚠ WATCH</div><p>HARMONi-6 Competitive Watch: Ivonescimab demonstrated superiority over tislelizumab + chemo in squamous NSCLC. Biomarker-differentiated response strategy required.</p></div>
+    </div>
+  </div>
+</div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DAILY MONITORING PANE ═══ -->
+<div class="top-pane" id="topPane-daily">
+  <nav class="sidebar-nav" id="daily-sidebar-nav">
+    <div class="sidebar-label">Daily Reports</div>
+
+    <!-- Collapsible day selector -->
+    <button class="side-tab" id="day-toggle-btn" onclick="toggleDayDropdown()" style="justify-content:space-between;width:100%;gap:0">
+      <span style="display:flex;align-items:center;gap:9px">
+        <span class="tab-icon">📅</span>
+        <span>
+          <span id="selected-day-text" style="display:block;font-size:13px;font-weight:600">Monday Mar 23</span>
+          <span id="selected-day-sub" style="display:block;font-size:10px;opacity:.7;font-weight:400">28 articles · 8 pos · 3 neg</span>
+        </span>
+      </span>
+      <span id="day-dd-arrow" style="font-size:11px;color:var(--text-mid);transition:transform .2s;flex-shrink:0;margin-left:auto">▼</span>
+    </button>
+
+    <!-- Day dropdown -->
+    <div id="day-dropdown" style="display:none;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:4px 0 6px;background:var(--bg)">
+      <button id="daytab-mar23" onclick="selectDay('mar23','Monday Mar 23','28 articles · 8 pos · 3 neg')" class="side-tab active" style="border-radius:0;margin:0;border-bottom:1px solid var(--border);padding:8px 12px">
+        <span class="tab-icon" style="font-size:12px">📅</span>
+        <span><span style="display:block;font-size:12px;font-weight:600">Mon Mar 23</span><span style="display:block;font-size:10px;opacity:.7;font-weight:400">28 arts · 8 pos · 3 neg</span></span>
+      </button>
+      <button id="daytab-mar24" onclick="selectDay('mar24','Tuesday Mar 24','30 articles · 12 pos · 3 neg')" class="side-tab" style="border-radius:0;margin:0;border-bottom:1px solid var(--border);padding:8px 12px">
+        <span class="tab-icon" style="font-size:12px">📅</span>
+        <span><span style="display:block;font-size:12px;font-weight:600">Tue Mar 24</span><span style="display:block;font-size:10px;opacity:.7;font-weight:400">30 arts · 12 pos · 3 neg</span></span>
+      </button>
+      <button id="daytab-mar25" onclick="selectDay('mar25','Wednesday Mar 25','27 articles · 9 pos · 2 neg')" class="side-tab" style="border-radius:0;margin:0;border-bottom:1px solid var(--border);padding:8px 12px">
+        <span class="tab-icon" style="font-size:12px">📅</span>
+        <span><span style="display:block;font-size:12px;font-weight:600">Wed Mar 25</span><span style="display:block;font-size:10px;opacity:.7;font-weight:400">27 arts · 9 pos · 2 neg</span></span>
+      </button>
+      <button id="daytab-mar26" onclick="selectDay('mar26','Thursday Mar 26','32 articles · 14 pos · 3 neg')" class="side-tab" style="border-radius:0;margin:0;border-bottom:1px solid var(--border);padding:8px 12px">
+        <span class="tab-icon" style="font-size:12px">📅</span>
+        <span><span style="display:block;font-size:12px;font-weight:600">Thu Mar 26 ⭐</span><span style="display:block;font-size:10px;opacity:.7;font-weight:400">32 arts · 14 pos · 3 neg</span></span>
+      </button>
+      <button id="daytab-mar27" onclick="selectDay('mar27','Friday Mar 27','26 articles · 13 pos · 1 neg')" class="side-tab" style="border-radius:0;margin:0;padding:8px 12px">
+        <span class="tab-icon" style="font-size:12px">📅</span>
+        <span><span style="display:block;font-size:12px;font-weight:600">Fri Mar 27</span><span style="display:block;font-size:10px;opacity:.7;font-weight:400">26 arts · 13 pos · 1 neg</span></span>
+      </button>
+    </div>
+
+    <!-- Section buckets -->
+    <div class="sidebar-label" style="margin-top:4px">Jump to Section</div>
+    <button class="side-tab" onclick="jumpToSection('new-noteworthy')" style="padding:9px 12px"><span class="tab-icon">⭐</span><span style="font-size:12.5px">New &amp; Noteworthy</span></button>
+    <button class="side-tab" onclick="jumpToSection('beone-announcements')" style="padding:9px 12px"><span class="tab-icon">📣</span><span style="font-size:12.5px">BeOne Announcements</span></button>
+    <button class="side-tab" onclick="jumpToSection('industry-policy')" style="padding:9px 12px"><span class="tab-icon">🏛️</span><span style="font-size:12.5px">Industry &amp; Policy</span></button>
+    <button class="side-tab" onclick="jumpToSection('key-competitor')" style="padding:9px 12px"><span class="tab-icon">🔵</span><span style="font-size:12.5px">Key Competitor</span></button>
+    <button class="side-tab" onclick="jumpToSection('solid-tumor')" style="padding:9px 12px"><span class="tab-icon">🔬</span><span style="font-size:12.5px">Solid Tumor</span></button>
+    <button class="side-tab" onclick="jumpToSection('china-biotech')" style="padding:9px 12px"><span class="tab-icon">🌏</span><span style="font-size:12.5px">China Biotech</span></button>
+    <button class="side-tab" onclick="jumpToSection('tweets')" style="padding:9px 12px"><span class="tab-icon">🐦</span><span style="font-size:12.5px">Tweets</span></button>
+  </nav>
+  <div class="content-area" id="daily-content">
+    <!-- content injected by JS -->
+  </div>
+</div>
+
+<!-- AI INSIGHT MODAL -->
+<div class="ai-overlay" id="ai-overlay" onclick="closeAI(event)">
+  <div class="ai-modal">
+    <div class="ai-modal-hdr">
+      <h3>✨ AI Media Intelligence Insight</h3>
+      <button class="ai-modal-close" onclick="closeAI()">✕</button>
+    </div>
+    <div class="ai-modal-body" id="ai-modal-body">
+      <div class="ai-loading"><div class="ai-spinner"></div><p>Generating structured insight…</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <strong>BeOne Medicines</strong> · Media Intelligence Dashboard · Generated April 2026 · Data: March 23–27, 2026 · 143 articles · Powered by <strong>Claude</strong>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// AI INSIGHT ENGINE — Pre-written structured insights
+// 3-part format: Coverage · Industry Impact · BeOne Strategic Impact
+// ══════════════════════════════════════════════════════
+const AI_INSIGHTS = {
+  'volume': {
+    coverage: 'BeOne Medicines generated 143 articles across 5 days, peaking on Thursday (32) driven by BeiGene\'s landmark 2025 financial results and first-ever annual profit. The week maintained a healthy 29-article daily average with no significant dips, indicating sustained media interest throughout.',
+    industry: 'The sustained volume across the full week — with no single day dropping below 26 articles — reflects a pharma media environment actively tracking both commercial milestones and geopolitical dynamics (US-China biotech competition, Iran war supply chain risks). This density of coverage is atypical for a non-conference week and signals BeOne\'s growing news-generating capability.',
+    beone: 'The Thursday peak driven by financial results (Brukinsa $3.93B, +48.6%) underscores that BeOne\'s commercial narrative is now independently news-worthy — not dependent on trial data or approvals. The communications team should schedule major financial and pipeline announcements for midweek to maximise journalist engagement.'
+  },
+  'sections': {
+    coverage: 'BeOne Announcements dominates at 31 articles (22% of weekly volume), more than double any other section except General Oncology (24, 17%). Tweets generated a disproportionately high 19 articles (13%), reflecting strong social amplification of BeOne\'s clinical data. New & Noteworthy had the lowest count (5) but highest-impact individual items.',
+    industry: 'The radar pattern reveals that BeOne is generating proactive news (Announcements leading) rather than reacting to the industry agenda (Competitor and Key Competitor sections combined = only 12 articles, 8%). This proactive posture is unusual among mid-cap oncology companies and signals a maturing communications infrastructure.',
+    beone: 'The high Tweets section share (13%) indicates strong social amplification of BeOne\'s clinical messaging — particularly @TheIACH tagging @BeOneMedicines and @ASCOPost sharing RATIONALE-309 data. Investing in structured social listening and influencer engagement programmes would further amplify this organic reach.'
+  },
+  'sentiment-split': {
+    coverage: 'BeOne\'s weekly sentiment profile is 56 positive (39%), 75 neutral (52%), 12 negative (8%). The 8% negative rate is below the pharma industry average of ~15% and reflects three containable issues (OPDP letter, G-BA, HIRA) rather than a systemic narrative problem.',
+    industry: 'A 39% positive rate for a pharma company in a week containing an FDA warning letter and two reimbursement setbacks is notable. Industry benchmarks suggest 25–30% positive as typical for companies managing active regulatory calendars. BeOne\'s positive outperformance is driven by simultaneous commercial milestone news overwhelming the negatives.',
+    beone: 'The 8% negative concentration is almost entirely Tevimbra-related (G-BA Germany, HIRA South Korea, HARMONi-6 competitive data). Brukinsa coverage this week was overwhelmingly positive. This bifurcated profile suggests the communications team should develop separate sentiment monitoring tracks for the two franchise assets.'
+  },
+  'daily-sent': {
+    coverage: 'Sentiment improved progressively from Monday (29% positive) to Thursday (47% positive) and Friday (50% positive), with Wednesday dipping slightly due to the FDA OPDP Untitled Letter. The week\'s trajectory was net positive, with Friday achieving the best positive-to-negative ratio (13:1).',
+    industry: 'The Wednesday sentiment dip caused by the Brukinsa OPDP letter is consistent with industry patterns: FDA regulatory actions create a 24–48 hour negative news cycle before analyst and investor context restores equilibrium. BeOne\'s −3.5% stock impact and same-day recovery are consistent with precedent at Lilly and Novo Nordisk in 2025.',
+    beone: 'Friday\'s strong close (13 positive, 12 neutral, 1 negative) driven by the Wolfe Research Buy initiation and BTK degrader Phase 3 announcement is strategically valuable — weekend financial reading tends to consolidate investor sentiment heading into the following week. The timing of the Oncology Pipeline CMO interview appears well-executed.'
+  },
+  'all-themes': {
+    coverage: 'Zanubrutinib/Brukinsa led with 24 mentions (17% of all theme references), followed by Tislelizumab/Tevimbra at 21 (15%). Together the two core franchise assets account for nearly a third of all thematic coverage, confirming BeOne\'s earned media is product-led rather than corporate narrative-led.',
+    industry: 'The Clinical Trial Data theme (19 mentions) ranking third confirms that oncology media this week was disproportionately data-driven. The BTK Inhibitors class theme (17 mentions) signals the competitive landscape narrative is intensifying as BTK degraders enter development.',
+    beone: 'The AI in Oncology theme (7 mentions) generated the week\'s most differentiated brand positioning — BeOne\'s Patient Advocacy AI Innovation Lab and LRF collaboration established a narrative that no direct competitor occupied this week. This "first mover" AI patient-care positioning should be systematically amplified across Q2 communications planning.'
+  },
+  'brand-vs-industry': {
+    coverage: 'Brand themes (Brukinsa 24, Tislelizumab 21, Pipeline 12 = 57 mentions) vs Industry context themes (FDA/Regulatory 14, China Biotech 13, Partnerships 11, Drug Pricing 9, AI in Oncology 7 = 54 mentions). The near-equal split reflects BeOne generating significant earned media directly while simultaneously being caught in broader industry narratives.',
+    industry: 'The China Biotech geopolitical theme (13 mentions) is driven by the Trump HHS "war on China biotech" rhetoric and congressional hearings — creating a macro risk environment specific to BeOne\'s dual US-China identity that no purely domestic oncology company faces.',
+    beone: 'The Drug Pricing theme (9 mentions) anchored by the P4AD Brukinsa $14K/month citation requires a proactive patient access narrative. Specific grant programme statistics, copay assistance numbers, and patient affordability outcome data should be prepared for rapid deployment in media and policy discussions.'
+  },
+  'all-pubs': {
+    coverage: 'Pink Sheet (8 articles) led all publications, followed by OncLive (7), Seeking Alpha (6), and Endpoints News, BioSpace, The ASCO Post (5 each). The breadth across investor, HCP, regulatory, and pipeline-specialist outlets reflects strong multi-audience media penetration.',
+    industry: 'The ASCO Post\'s 5-article coverage this week — headlined by the formal tislelizumab GEA guideline inclusion — represents disproportionately high commercial value relative to article count, as ASCO publications directly shape prescribing protocols and payer formulary decisions globally.',
+    beone: 'Oncology Pipeline (Evaluate/Citeline) at 4 articles may appear modest by count, but reaches fund managers, BD executives, and strategists at top-tier biotech and pharma firms globally — audiences who make capital allocation and deal decisions. BeOne\'s CMO interview in this outlet was the week\'s highest-value single media placement.'
+  },
+  'all-authors': {
+    coverage: 'Madeleine Armstrong (Oncology Pipeline) and Derrick Gingery (Pink Sheet) tied at 3 articles each — the week\'s most active authors. Armstrong covered pipeline strategy (CMO interview); Gingery covered FDA regulatory policy. Both reach audiences with direct strategic relevance to BeOne.',
+    industry: 'Dr. Jaffer Ajani\'s Medscape clinical review — though a single article — carries the week\'s highest per-article HCP prescribing influence. As a GI oncology KOL, Ajani\'s recommendation of tislelizumab as ESCC SOC in a publication reaching 3.5M+ HCPs globally is more commercially impactful than multiple press coverage items combined.',
+    beone: 'Kalpit Patel\'s Wolfe Research Buy initiation — also just one article — creates a permanent institutional equity research record on $BGNE and brings BeOne to a new institutional client base. Tracking the analyst coverage expansion metric (initiating firms, price targets) is a key IR performance indicator for Q2 2026.'
+  },
+  'crisis-full': {
+    coverage: '4 active items this week: FDA OPDP Untitled Letter for Brukinsa DTC ad (High — Mar 25), G-BA "Not Proven" for Tevimbra in Germany (High — Mar 23), HIRA reimbursement denial South Korea (Medium — Mar 26), and Akeso HARMONi-6 ivonescimab superiority over tislelizumab in sq. NSCLC (Competitive Watch). 0 items resolved this week.',
+    industry: 'The clustering of two high-priority regulatory and reimbursement setbacks in a single week (G-BA Monday, OPDP Wednesday, HIRA Thursday) is unusual and creates a compounded media risk. However, the simultaneous volume of positive commercial news this week effectively suppressed the cumulative negative impact — a testament to BeOne\'s news-generation capacity.',
+    beone: 'All three escalation items are Tevimbra-related, confirming that Brukinsa\'s communications posture is operationally sound while Tevimbra\'s market access strategy requires structural reinforcement. A dedicated Tevimbra crisis communications and HTA strategy working group — with monthly escalation reviews — is recommended.'
+  },
+  'exec-ai': {
+    coverage: 'BeOne generated 143 articles in a landmark commercial week anchored by three concurrent forces: first-ever annual profit and record Brukinsa revenue ($3.93B +48.6%), formal ASCO guideline recognition for tislelizumab, and Wolfe Research new Buy coverage initiation. Sentiment was 39% positive despite three escalation items.',
+    industry: 'BeiGene achieving first-ever annual profitability on $5.34B revenue changes the institutional framing from "high-growth clinical-stage company" to "profitable scaled oncology franchise." This transition typically triggers re-rating by institutional investors applying EV/Sales and EV/EBITDA multiples — a structural shift in how $BGNE is valued.',
+    beone: 'Three items require immediate senior leadership action: FDA OPDP corrective advertising for Brukinsa DTC, G-BA Germany AMNOG comparator strategy redesign for Tevimbra, and HIRA South Korea HEOR dossier revision. The HARMONi-6 competitive response should be delegated to the lung cancer franchise team with a 30-day biomarker-differentiation narrative deadline.'
+  },
+  'signals': {
+    coverage: 'Six executive signals captured this week: Record Brukinsa revenue $3.93B (+48.6%) and first-ever profit $287M; ASCO GEA guideline formal tislelizumab inclusion; Wolfe Research Buy initiation; BTK degrader BGB-16673 Phase 3 plans revealed via CMO interview; FDA OPDP Untitled Letter for Brukinsa DTC; HARMONi-6 ivonescimab superiority over tislelizumab in sq. NSCLC.',
+    industry: 'The co-occurrence of landmark commercial success (first profit, record revenue) and material regulatory/competitive challenges (OPDP, G-BA, HIRA, HARMONi-6) in a single week reflects the operational complexity of managing a multi-product, multi-market oncology franchise at scale. This pattern is characteristic of large-cap pharma companies — not mid-cap — signalling BeOne\'s maturation.',
+    beone: 'The net signal balance is strongly positive: 3 positive signals (financial results, ASCO guidelines, Wolfe Buy) outweigh 3 risk signals (OPDP, G-BA/HIRA combined, HARMONi-6) in terms of commercial impact and duration. The communications team should proactively frame the week\'s narrative as "record commercial momentum with manageable and actively addressed regulatory challenges."'
+  }
+};
+
+// Per-KPI signals mapped to themed insights
+const KPI_INSIGHTS = {
+  'kpi-volume': { coverage: 'BeOne generated 143 articles across 5 days (March 23–27, 2026) — a 29-article daily average sustained without a single day below 26. Thursday peaked at 32, driven entirely by BeiGene\'s landmark FY2025 financial results and first-ever annual profit.', industry: 'This volume density for a non-conference week is atypical in pharma media — most oncology companies generate 15–20 articles/day only during major data readouts or conference presentations. BeOne\'s ability to sustain 26–32 articles/day on commercial and pipeline news alone signals a mature earned media capability.', beone: 'Midweek scheduling (Tue–Thu) for major announcements maximises journalist engagement: Tuesday\'s high volume (30 articles) and Thursday\'s peak (32 articles) both correlate with significant announcement activity. BeOne\'s IR and communications teams should maintain this pattern in Q2 2026 planning.' },
+  'kpi-sentiment': { coverage: '56 of 143 articles carried positive sentiment (39%), 75 neutral (52%), and 12 negative (8%). The 39% positive rate is notable given the week included an FDA OPDP enforcement action and two reimbursement setbacks — a typical pharma company in this situation would expect 20–25% positive.', industry: 'BeOne\'s ability to maintain 39% positive sentiment in a week with three escalation items reflects the power of simultaneous commercial milestone news (first profit, ASCO guidelines, Wolfe Buy) in diluting negative sentiment. This "positive news buffer" strategy is increasingly standard among large-cap pharma communications teams.', beone: 'Separate sentiment tracking for Brukinsa (overwhelmingly positive this week) and Tevimbra (mixed — ASCO positive, G-BA/HIRA/HARMONi-6 negative) is recommended. The bifurcated profile requires different communications responses and monitoring cadences for each asset.' },
+  'kpi-negative': { coverage: '12 negative articles (8% of total) were captured across the week, with 3 items escalated to crisis level: FDA OPDP Untitled Letter for Brukinsa DTC (High — Mar 25), G-BA "Not Proven" for Tevimbra in Germany (High — Mar 23), HIRA reimbursement denial South Korea (Medium — Mar 26). Additionally: P4AD drug pricing ($14K/month), Ascentage CEO safety challenge on sonrotoclax, HARMONi-6 competitive data.', industry: 'An 8% negative rate is below the pharma industry average of ~15%. The three escalation items are market access/regulatory rather than safety or clinical efficacy failures — the most manageable category of negative media in terms of reputational recovery. Safety failures typically generate 3–5x more media volume than regulatory process setbacks.', beone: 'All escalation items are Tevimbra-related. Brukinsa\'s negative media this week was limited to the contained OPDP letter and the P4AD pricing citation — both manageable with proactive communications. A dedicated Tevimbra crisis working group with 30-day review cadence is recommended.' },
+  'kpi-revenue': { coverage: 'BeiGene FY2025: Brukinsa $3.93B globally (+48.6% YoY), total revenue $5.34B (+40.2% YoY), first-ever annual net profit $287M. Brukinsa is now the global BTK inhibitor revenue leader and the first Chinese innovative drug to defeat a global blockbuster in head-to-head Phase 3. Thursday coverage was extensive across Longbridge, Seeking Alpha, TipRanks, BioSpace, multiple financial wires.', industry: 'BeiGene\'s transition to profitability on $5.34B revenue is a landmark in Chinese pharma globalisation — comparable to the inflection moments seen at Roche and AstraZeneca in their respective growth phases. This transition typically triggers institutional investor re-rating from pipeline-probability-adjusted to EV/Sales and EV/EBITDA multiples — a structural positive for $BGNE.', beone: 'Thursday\'s financial results media creates a permanent institutional record of BeOne\'s profitability inflection. The Goldman Sachs benchmark language ("zanubrutinib plus sonrotoclax as the competitive standard") should be incorporated directly into Q2 investor presentations as third-party validation of the combination strategy.' },
+  'kpi-pubs': { coverage: 'Tier 1 premium outlets (Pink Sheet 8, Endpoints News 5, STAT News 2+, Scrip Intelligence 2) reached C-suite executives, regulators, and institutional investors. ASCO Post (5) and Medscape (1 KOL review) represent Tier 2 HCP outlets reaching 3.5M+ physicians. Together they form the highest-strategic-impact coverage cluster of the week.', industry: 'Pink Sheet\'s 8 articles — the highest of any single outlet — reflects BeOne\'s active regulatory and market access calendar (G-BA, GDUFA, PDUFA, OPDP) generating sustained interest from the regulatory intelligence subscriber base. Pink Sheet reach among regulatory affairs executives and market access decision-makers is unmatched in pharma media.', beone: 'ASCO Post\'s formal listing of tislelizumab in GEA guidelines (5 articles this week) is the highest-value per-article media placement for HCP prescribing influence. ASCO guidelines are directly referenced by oncologists in treatment decisions and by payers in formulary coverage determinations — both audiences directly driving BeOne\'s revenue.' }
+};
+
+// Insight data for each signal card
+const SIGNAL_INSIGHTS = {
+  'sig-rev': { coverage: 'BeiGene FY2025 record financials generated extensive Thursday coverage: Brukinsa $3.93B globally (+48.6% YoY), total revenue $5.34B (+40.2% YoY), first-ever annual net profit of $287M. Coverage appeared across Longbridge, Seeking Alpha, TipRanks, BioSpace, and multiple financial wires simultaneously.', industry: 'BeiGene\'s transition to profitability at $5.34B revenue is a landmark in Chinese pharma globalisation. This milestone typically triggers institutional investor re-rating from pipeline-probability-adjusted valuations to EV/Sales and EV/EBITDA multiples — a structural positive for $BGNE institutional coverage.', beone: 'Goldman Sachs specifically benchmarking InnoCare against "zanubrutinib plus sonrotoclax" during Q4 earnings is the week\'s most valuable third-party commercial intelligence signal. This language should be captured and incorporated directly into Q2 investor relations narrative as buy-side validation of the combination strategy.' },
+  'sig-asco': { coverage: 'ASCO\'s updated GEA cancer management guidelines now formally include tislelizumab as a first-line therapy recommendation for unresectable/metastatic HER2-negative gastric or GEJ adenocarcinoma with PD-L1 expression — alongside pembrolizumab and nivolumab. Covered in The ASCO Post across 5 articles this week.', industry: 'ASCO guideline inclusion is the highest-value clinical credentialing milestone in oncology. These guidelines are directly referenced by oncologists in treatment decisions, by payers in formulary coverage, and by regulatory agencies in label expansion reviews. Achieving standard-of-care status alongside pembrolizumab and nivolumab within 12–18 months of approval is a communications and medical affairs achievement.', beone: 'The ASCO GEA guideline listing should be immediately activated across all commercial channels: HCP sales force materials, speaker bureau slide decks, payer value dossiers, and market access submissions in remaining APAC markets. This is the strongest single commercial credentialing asset BeOne\'s GI oncology team has generated in 2026.' },
+  'sig-wolfe': { coverage: 'Analyst Kalpit Patel (Wolfe Research) initiated a Buy rating on BeOne on March 27, highlighting Brukinsa\'s CLL/SLL leadership in both continuous BTKi and fixed-duration segments, broad pipeline depth with rapid proof-of-concept execution, and BeOne as a profitable, scaled oncology franchise at compelling EV/sales multiples.', industry: 'A fresh sell-side coverage initiation from a new analyst firm carries significant institutional signal value — it brings BeOne to the attention of Wolfe Research\'s institutional client base (estimated 50–200 institutional accounts) and creates a new permanent equity research record on $BGNE. New coverage initiations typically generate buy-side interest within 30 days.', beone: 'Wolfe Research\'s Buy initiation is a key input for BeOne\'s Q2 IR communications: it represents independent validation of the commercial thesis, Brukinsa franchise leadership, and pipeline value from a new institutional research voice. The IR team should actively amplify the initiation through their institutional investor outreach programme.' },
+  'sig-btk': { coverage: 'Oncology Pipeline (Evaluate/Citeline) published an exclusive feature by Madeleine Armstrong including an interview with BeOne Haematology CMO Amit Agarwal revealing Phase 3 plans for BTK degrader BGB-16673 + next-gen BCL2 inhibitor sonrotoclax in relapsed/refractory CLL, with hints at additional disease settings.', industry: 'The BTK degrader space is the most anticipated next-generation BTK development in hematology. BeOne\'s announcement of Phase 3 plans positions it as the frontrunner ahead of competitors still in Phase 1/2. The Friday timing of the Oncology Pipeline disclosure — reaching fund managers and BD executives before weekend portfolio review — reflects sophisticated IR calendar management.', beone: 'The CMO interview format in Oncology Pipeline (vs. a press release) is the optimal medium for this announcement: it reaches Evaluate/Citeline\'s premium readership of fund managers, pharma BD teams, and pipeline strategists who make capital allocation decisions based on pipeline intelligence. This media format should be replicated for future key pipeline milestones.' },
+  'sig-fda': { coverage: 'FDA\'s Office of Prescription Drug Promotion issued an Untitled Letter to BeOne citing a Brukinsa TV commercial for: (1) creating the impression patients could safely engage in extended activities without adequately conveying risks, and (2) imbalanced presentation of the major benefit statement. Reported in Gardner Law News on March 25. Stock declined −3.5%, fully recovered within 2 trading days.', industry: 'Untitled Letters are the lower of the two FDA enforcement tiers (vs. Warning Letters, which require more prominent public disclosure). Precedent at Eli Lilly, Novo Nordisk, and HIMS in 2025 shows similar or larger initial stock dips that recovered rapidly. The 2-day recovery timeline for BeOne is consistent with industry norms for contained OPDP actions.', beone: 'Corrective action required from regulatory affairs: prepare corrective advertising submission to FDA OPDP within the standard 30-day response window. Medical affairs must audit all existing DTC broadcast materials (TV, radio, digital video) for risk-balance compliance. Halt further airing of the cited commercial pending remediation. Communications should prepare a holding statement for media inquiries.' },
+  'sig-harmoni': { coverage: 'Akeso\'s 2025 annual results formally confirmed ivonescimab superiority over tislelizumab + chemotherapy in first-line squamous NSCLC (HARMONi-6) and dual PFS/OS positivity in EGFR-TKI resistant NSCLC. Approximately 70,000 patients have now received ivonescimab. Covered by Akeso PR and Times.Now on March 26–27.', industry: 'HARMONi-6 is the most consequential competitive data readout for tislelizumab\'s NSCLC franchise this year. However, the superiority was demonstrated specifically in first-line squamous NSCLC — not in the broader non-squamous or PD-L1-defined populations where tislelizumab has distinct and robust data from RATIONALE-307 and other studies.', beone: 'BeOne\'s lung cancer franchise team should fast-track a biomarker-differentiation response: (1) Develop updated competitive evidence framework for non-squamous NSCLC and PD-L1-defined populations, (2) Brief key lung cancer KOLs with differentiated scientific narrative, (3) Prepare HCP-facing educational content on population-specific data. 30-day deadline recommended.' },
+  'pos-revenue': { coverage: 'Thursday\'s 14 positive articles were driven primarily by BeiGene FY2025 financial results — the week\'s peak positive day. Articles appeared across Seeking Alpha, TipRanks, BioSpace, Oncology Pipeline, and multiple financial wires simultaneously. The Goldman Sachs InnoCare earnings call benchmark citation added indirect positive amplification.', industry: 'Financial results generating 14 positive articles in a single day across investor, industry, and clinical audiences simultaneously is a rare multi-audience positive signal. Most pharma companies achieve this only at major conference data readouts (ASCO, ASH). BeOne\'s ability to generate this volume on financial news alone signals transition to large-cap media maturity.', beone: 'Thursday\'s financial results coverage creates a permanent institutional record of BeOne\'s profitability inflection. The communications team should develop a Q2 narrative that sustains the "profitable, scaled oncology franchise" framing through the investor relations programme, earnings call language, and media briefing materials.' },
+  'pos-asco2': { coverage: 'Tislelizumab\'s formal inclusion in ASCO\'s updated GEA cancer management guidelines on March 25 was the week\'s highest single commercial-impact media placement. The ASCO Post covered this in detail. Guideline recommendations directly reference PD-L1 expression status as the selection criterion, positioning tislelizumab in a clearly defined patient population.', industry: 'ASCO guidelines are the most influential prescribing reference for US oncologists and the primary basis for payer formulary decisions globally. Achieving standard-of-care status alongside pembrolizumab and nivolumab within 12–18 months of US approval demonstrates competitive clinical positioning unusual for a Chinese-origin IO agent in Western markets.', beone: 'This guideline listing should be immediately incorporated into: HCP sales force materials, speaker bureau slide decks, payer value dossiers, market access submissions in remaining markets, and investor presentations as evidence of SOC clinical positioning. It is BeOne\'s single strongest commercial credentialing asset for tislelizumab in GEA.' },
+  'watch-harmoni': { coverage: 'HARMONi-6 was classified as competitive watch (not crisis) because superiority was demonstrated specifically in first-line squamous NSCLC — not in the broader NSCLC population. PD-L1 expression levels significantly influenced outcomes, with tislelizumab maintaining competitive performance in biomarker-defined sub-populations per the Times.Now coverage.', industry: 'The HARMONi-6 result accelerates the already rapid evolution of first-line NSCLC treatment toward biomarker-stratified precision approaches. This creates both a risk (ivonescimab in squamous) and an opportunity (tislelizumab in non-squamous and PD-L1+ populations where current data is robust).', beone: 'Classification as watch (not crisis) depends on BeOne executing a proactive biomarker-differentiation communications response within 30 days. Failure to articulate a clear scientific counter-narrative will allow the HARMONi-6 story to define tislelizumab\'s competitive position by default — shifting the classification to risk.' },
+  'neg-fda2': { coverage: 'The FDA OPDP Untitled Letter for Brukinsa DTC generated a contained media crisis on Wednesday March 25. The −3.5% stock impact and 2-day recovery, combined with simultaneous ASCO guideline inclusion news, limited the negative narrative spread. Gardner Law News covered the letter; @Gobbb111\'s widely-shared tweet (1,083 views) actively reframed the impact as a non-event.', industry: 'Social media reframing of OPDP actions by retail investor accounts is an emerging pattern in pharma crisis communications. @Gobbb111\'s comparison to Lilly/Novo/HIMS recoveries effectively crowdsourced a counter-narrative that supplemented BeOne\'s official response. This "organic defence" from the investor community is a signal of strong retail investor loyalty to $BGNE.', beone: 'The OPDP letter requires regulatory corrective action regardless of contained media impact. Medical affairs must conduct a full DTC materials audit; regulatory affairs must prepare the corrective advertising submission. Documenting the stock recovery timeline and investor community response provides useful precedent for future OPDP risk communications.' },
+  'info-pricing': { coverage: 'P4AD (Partnership for America\'s Drug Policy) cited Brukinsa at approximately $14,000/month patient out-of-pocket cost in a high-profile drug affordability report featuring a Kentucky CLL patient\'s testimony. The report covered 64 oncology price hikes in early 2026, with 73% exceeding inflation. Coverage appeared in Patients For Affordable Drugs media channels on March 23.', industry: 'Patient testimonial-format drug pricing coverage carries high media amplification risk — it is the format most likely to generate mainstream news pickup, congressional attention, and social media virality. P4AD has a track record of generating congressional hearing invitations and CMS drug pricing negotiation nominations from this format.', beone: 'Proactive response required: (1) Increase visibility of Brukinsa patient assistance programs in HCP communications and BeOne website, (2) Brief payer-facing outlets (Pink Sheet, Endpoints) on cost-effectiveness data and total cost of care, (3) Prepare data on actual net price after rebates for appropriate disclosure, (4) Ensure PAP enrollment simplification to reduce out-of-pocket burden visibility.' },
+  'pos-ai': { coverage: 'BeOne\'s Patient Advocacy AI Innovation Lab (March 27, Future of Personal Health coverage) brought blood cancer patients and caregivers together to guide AI tool development for oncology care. Jennifer Branstetter: "AI is central to BeOne\'s purpose of developing and delivering innovative oncology medicines to patients faster." Covered alongside broader AI in Oncology theme week (7 total mentions).', industry: 'Pharma-led AI in patient care is emerging as a distinct competitive differentiator in 2026. BeOne is the only oncology company this week that generated its own AI brand narrative — Roche and Daiichi Sankyo had AI-adjacent coverage, but neither owned a patient-centric AI positioning story. The regulatory framework for AI in drug promotion is still developing, creating a first-mover advantage.', beone: 'BeOne\'s proactive AI patient-care positioning through the Innovation Lab and LRF collaboration is the week\'s most differentiated corporate reputation investment. A systematic "AI for patients" content calendar — maintaining weekly thought leadership presence through Q2–Q4 2026 — would sustain this first-mover position before competitors activate.' },
+  'mit-fda': { coverage: 'FDA OPDP Untitled Letter for Brukinsa DTC cited (1) impression of unrestricted patient activity without adequate risk disclosure, and (2) imbalanced major benefit statement presentation. Stock impact −3.5%, recovered 2 days. Precedent: Lilly, Novo Nordisk, HIMS all saw comparable or larger dips recover rapidly in 2025.', industry: 'Untitled Letters are the lower FDA enforcement tier. The standard response timeline is 30 days for corrective action submission. FDA OPDP has not escalated any 2025 oncology Untitled Letters to Warning Letters within a 90-day window when corrective action was promptly submitted — providing a clear compliance pathway.', beone: 'Required actions: (1) Halt airing of cited commercial immediately, (2) Regulatory affairs to prepare corrective advertising submission within 30 days, (3) Medical affairs to audit all existing DTC broadcast and digital video materials for risk-balance compliance, (4) Legal to assess parallel state attorney general exposure, (5) Communications to prepare a holding statement referencing BeOne\'s commitment to patient safety and transparent risk communication.' },
+  'mit-gba': { coverage: 'G-BA rated Tevimbra\'s added benefit as "Not Proven" for first-line ES-SCLC because RATIONALE 312 used chemotherapy alone as the comparator rather than the AMNOG-defined appropriate comparator. Tevimbra\'s list price EUR 1,723.42 per 100mg is now at risk of AMNOG-negotiated price reduction. Covered in Navlin Daily on March 23.', industry: 'AMNOG comparator mismatch is the most common reason for G-BA "Not Proven" ratings in oncology. The structural issue is typically addressable through redesigned trial comparators in subsequent submissions. Companies that initiate early G-BA scientific dialogue before clinical trial design finalisation consistently avoid this failure mode.', beone: 'Required actions: (1) Market access Germany to immediately request G-BA early scientific dialogue for future Tevimbra ES-SCLC submission with AMNOG-compliant comparator, (2) HEOR Germany to model financial scenarios for negotiated price vs. list price, (3) Consider interim risk-sharing managed entry agreement to maintain access during appeal, (4) Cross-functional review of all pending Tevimbra HTA submissions for AMNOG comparator alignment.' },
+  'mit-hira': { coverage: 'South Korea\'s 10th Cancer Disease Review Committee denied coverage for Tevimbra alongside Tepmetco, Pemazyre, and Verzenio on March 26. South Korea\'s HIRA decisions often influence Taiwan NHIA, Malaysia MoH, and Thailand NHSO assessments — creating potential APAC cascade risk.', industry: 'HIRA\'s WTP threshold (~KRW 45M/QALY) is among the more restrictive in APAC and requires Korean-specific cost-effectiveness modeling rather than adaptation of European or US HEOR dossiers. Managed entry agreements with outcome-based risk sharing are the most common pathway to successful resubmission for IO agents denied on first review.', beone: 'Required actions: (1) Commission Korean-specific HEOR cost-effectiveness model with Korean epidemiology and treatment cost inputs, (2) Engage Korean patient advocacy organizations for resubmission testimony, (3) Monitor APAC HTA cascade — assess Taiwan NHIA and Thailand NHSO exposure, (4) Target HIRA resubmission within 6–9 months, (5) Consider outcome-based risk-sharing agreement to satisfy Cancer Disease Review Committee evidence threshold.' },
+  'mit-harmoni': { coverage: 'Akeso HARMONi-6 confirmed ivonescimab superiority over tislelizumab + chemo in first-line squamous NSCLC and dual PFS/OS positivity in EGFR-TKI resistant NSCLC (~70,000 patients treated). The superiority was histology-specific (squamous) and PD-L1-influenced — tislelizumab maintained competitive performance in biomarker-defined sub-populations.', industry: 'Ivonescimab\'s NMPA approval and HARMONi-6 data create a material competitive threat in China-first squamous NSCLC — but the mechanism (PD-1/VEGF bispecific vs. PD-1 monotherapy) suggests different patient populations may be optimally served by each agent. FDA has not yet approved ivonescimab, limiting its competitive threat in Western markets in 2026.', beone: 'Required actions within 30 days: (1) Medical affairs to fast-track biomarker differentiation analysis in RATIONALE-307 and other studies for non-squamous NSCLC and PD-L1+ populations, (2) Develop HCP-facing scientific narrative clearly positioning tislelizumab in non-squamous and PD-L1-defined settings, (3) Brief lung cancer KOLs with differentiated data package, (4) Monitor ivonescimab FDA filing timeline — escalate to crisis if US approval granted.' },
+  'mit-pricing': { coverage: 'P4AD Brukinsa $14K/month citation (Kentucky patient testimony) appeared in affordability report covering 64 oncology price hikes, 73% above inflation. Secondary coverage risk: this format is designed for congressional hearing and CMS negotiation nomination amplification — P4AD has a documented track record of generating both outcomes.', industry: 'The MFN pricing framework negotiations running simultaneously with the P4AD report create a converging policy risk: executive + congressional + patient advocacy pressure on premium oncology drug pricing in a single week. Brukinsa\'s US market positioning as a premium BTK inhibitor makes it specifically exposed to this policy environment.', beone: 'Required actions: (1) Patient support programs team to streamline PAP enrollment and increase visibility in HCP-facing materials, (2) Healthcare communications to proactively brief Pink Sheet and Endpoints on actual net price after rebates and cost-effectiveness data, (3) Prepare Washington DC policy engagement brief on Brukinsa patient access programs, (4) Monitor P4AD media for congressional amplification and prepare rapid-response talking points.' },
+  'mit-geo': { coverage: 'Trump HHS official Chris Klomp called competition with China\'s ascending biotech industry "a war" at CPAC (Endpoints News, March 27). Georgetown study confirmed China\'s early-stage drug development share has grown substantially (March 27). Congressional biotech investors meeting with National Security Commission (March 25).', industry: 'The convergence of executive ("war on China biotech"), legislative (National Security Commission), and academic (Georgetown study) China biotech narratives in a single week signals this is becoming a sustained policy theme — not a one-cycle story. Companies with Chinese origins and US commercial operations will face increasing scrutiny from both regulatory and investment community stakeholders.', beone: 'Required actions: (1) Corporate communications to refresh US-first commercial messaging — US headquarters, US clinical trials, US manufacturing partnerships, US employment, (2) Legal and regulatory affairs to assess BIOSECURE Act and similar legislative exposure, (3) Government affairs to proactively engage FDA and key congressional offices on BeOne\'s US commercial and scientific commitment, (4) Executive communications to position CEO John Oyler as US-based oncology leader in domestic media outreach.' },
+  'pub-tier1': { coverage: 'Pink Sheet (8 articles), Endpoints News (5), STAT News (2+), and Scrip Intelligence (2) constitute the week\'s Tier 1 premium subscription publications. Combined, they reached C-suite executives, senior regulatory affairs professionals, institutional investors, and biopharma policy makers — the highest strategic-impact audience segment for BeOne.', industry: 'Tier 1 pharma media has an estimated 80–90% overlap with the audience that shapes FDA policy, AMNOG submissions, and institutional capital allocation decisions. A single Pink Sheet article reaching a senior market access decision-maker carries more commercial influence than 10 trade publication articles reaching general audiences.', beone: 'Pink Sheet\'s 8 articles this week — the highest of any outlet — reflect BeOne\'s active regulatory and market access calendar generating sustained policy intelligence interest. Proactively briefing Pink Sheet and Endpoints journalists (Derrick Gingery, Max Bayer) on BeOne\'s HTA strategy and US-first commercial commitment is a high-value media relations investment for Q2.' },
+  'pub-pink': { coverage: 'Pink Sheet published 8 articles with direct BeOne relevance — the highest of any outlet this week. Three bylines from Derrick Gingery: GDUFA IV revenue shortfall, FDA PDUFA America First proposals, FDA layoff spending patterns. Additional coverage: G-BA Tevimbra "Not Proven," AMNOG comparator issues, China out-licensing analysis.', industry: 'Pink Sheet\'s subscription-only model means its readership is exclusively composed of senior regulatory, market access, and policy professionals who have budget authority to purchase premium intelligence. A BeOne challenge (G-BA, OPDP) covered in Pink Sheet reaches the most commercially influential audience possible — including the regulatory decision-makers who will review BeOne\'s future submissions.', beone: 'The three Gingery regulatory policy pieces (GDUFA, PDUFA, FDA layoffs) are critical intelligence for BeOne\'s regulatory affairs and market access teams monitoring FDA operating capacity and fee structure changes. BeOne\'s regulatory submission strategy should be adjusted based on the 10–15% FDA reviewer capacity reduction implied by the layoff coverage.' },
+  'pub-onclive': { coverage: 'OncLive provided 7 articles of direct HCP prescribing value: zanubrutinib/venetoclax expert panels in CLL (256 views), BTKi fixed-duration therapy landscape, ESCC frontline treatment paradigm, and HER2-mutated NSCLC genomic profiling. As the leading US HCP-facing oncology outlet, OncLive articles directly inform prescribing decisions among BeOne\'s target oncologist and haematologist audience.', industry: 'OncLive\'s audience of US oncologists and haematologists represents the most valuable single HCP prescribing cohort for Brukinsa and tislelizumab. The 256-view expert panel on zanubrutinib/venetoclax — while modest in raw view count — reaches a highly targeted HCP audience who are direct prescribers. HCP-facing media efficiency is measured per prescriber reached, not per total view.', beone: 'The 7-article OncLive presence this week represents strong commercial media penetration in BeOne\'s primary HCP target audience. The communications team should develop a structured OncLive presence strategy: monthly expert panels, quarterly clinical reviews, and immediate data amplification when BeOne trials generate publications. The zanubrutinib/venetoclax panel format is particularly effective — it positions BeOne within the competitive landscape as the combination partner of choice.' },
+  'auth-armstrong': { coverage: 'Madeleine Armstrong (Oncology Pipeline/Evaluate) authored the week\'s most strategically valuable media placement: "BeOne looks to a degrader combo" — featuring exclusive access to Haematology CMO Amit Agarwal announcing BGB-16673 + sonrotoclax Phase 3 plans. Armstrong also authored a cell therapy/MAT2A piece endorsing BeOne alongside Gilead.', industry: 'Evaluate/Citeline\'s Oncology Pipeline is the gold standard pipeline intelligence service used by institutional investors, fund managers, and pharma BD teams globally to make capital allocation and deal decisions. Armstrong\'s CMO interview effectively communicates BeOne\'s next-generation pipeline thesis to the exact audience that prices future pipeline value into $BGNE.', beone: 'This media relationship — CMO direct access to Evaluate/Citeline — should be maintained and deepened. Future key pipeline milestones (Phase 3 start, readout timelines, regulatory submissions) should be exclusively disclosed to Oncology Pipeline as the first-disclosure outlet. This creates a premium intelligence scoop for Armstrong that sustains the relationship and ensures consistent high-quality BeOne coverage in the highest-value channel.' },
+  'auth-kol': { coverage: 'Dr. Jaffer Ajani (leading GI oncology KOL, MD Anderson Cancer Center) published a Medscape clinical review explicitly positioning tislelizumab as standard-of-care first-line treatment for ESCC alongside nivolumab and pembrolizumab based on RATIONALE-306. Medscape reaches over 3.5 million healthcare professionals globally across specialties.', industry: 'A KOL-authored clinical review in Medscape carries 5–10x greater HCP prescribing influence than a company-authored press release or even a media article. Dr. Ajani\'s MD Anderson affiliation and GI oncology KOL status make his recommendation the most credible external validation of tislelizumab\'s ESCC positioning available in the current market.', beone: 'The Ajani-Medscape ESCC review is BeOne\'s highest-reach HCP touchpoint this week. Medical affairs should immediately identify additional GI oncology KOLs for structured engagement — seeking similar review article placements in OncLive, The ASCO Post, and Targeted Oncology. The ASCO GEA guideline inclusion this week provides the perfect catalyst for KOL-authored reviews across multiple HCP media outlets.' },
+  'sig-oncpipe': { coverage: 'Madeleine Armstrong (Oncology Pipeline/Evaluate) authored the week\'s most strategically valuable placement: an exclusive feature with Haematology CMO Amit Agarwal announcing BGB-16673 + sonrotoclax Phase 3 plans. Oncology Pipeline\'s premium readership of fund managers, BD executives, and strategists makes this disproportionately high-impact relative to article count.', industry: 'Evaluate/Citeline\'s Oncology Pipeline is the gold standard pipeline intelligence service used by institutional investors and pharma BD teams globally to make capital allocation and deal decisions. A CMO interview with Phase 3 timeline details in this outlet is equivalent to a formal investor day pipeline disclosure in terms of audience reach and credibility.', beone: 'This media relationship should be maintained and deepened. Future key pipeline milestones (Phase 3 start, readout timelines, regulatory submissions) should be disclosed to Oncology Pipeline as the first outlet. This creates a premium intelligence scoop for Armstrong and ensures consistent high-quality BeOne coverage in the highest-value channel for institutional and BD audiences.' },
+  'sig-ascoformal': { coverage: 'The ASCO Post delivered 5 BeOne-adjacent articles this week, headlined by formal coverage of the tislelizumab GEA guideline inclusion. ASCO Post is the official communications vehicle of the American Society of Clinical Oncology — read primarily by oncologists and KOLs with direct prescribing authority in BeOne\'s commercial indication areas.', industry: 'ASCO Post coverage carries institutional credibility that trade and financial press cannot replicate. A guideline recommendation published in ASCO Post is referenced by oncologists as authoritative clinical guidance, by payers in formulary decisions, and by regulatory agencies in label expansion submissions. Five BeOne-adjacent articles in a single week is high penetration for a non-conference period.', beone: 'The 5-article ASCO Post presence this week establishes tislelizumab\'s clinical credibility with a directly prescribing audience. Medical affairs should immediately develop an ASCO Post content strategy: monthly clinical reviews, expert panel summaries, and RATIONALE trial data amplification timed to ASCO Post\'s editorial calendar. This is the single highest-value HCP media channel for tislelizumab.' },
+  'sig-scrip': { coverage: 'Xu Hu\'s Scrip Intelligence analysis of Chinese biotech globalisation explicitly cited BeOne as one of the rare genuine success cases of a Chinese biopharma company becoming a truly international entity. This was published in a premium subscription outlet whose readership includes global pharma executives, BD teams, and senior strategists.', industry: 'Scrip Intelligence benchmark citations carry persistent strategic credibility — articles remain in subscriber databases and are referenced in BD due diligence, analyst research, and strategic planning documents for 12–18 months after publication. Being named the Chinese pharma globalisation benchmark in Scrip is equivalent to a Big Pharma analyst day endorsement in terms of institutional credibility.', beone: 'As BeOne transitions from BeiGene to BeOne Medicines, the Scrip Intelligence benchmark citation is a critical corporate repositioning validation. The communications team should actively reference this citation in investor presentations, BD pitch materials, and media briefings as third-party evidence of BeOne\'s genuine global status — differentiated from aspirational "globalising" Chinese pharma peers.' },
+  'sig-medscape': { coverage: 'Dr. Jaffer Ajani\'s Medscape clinical review explicitly positioned tislelizumab as standard-of-care first-line treatment for ESCC alongside nivolumab and pembrolizumab, based on RATIONALE-306. Medscape reaches over 3.5 million healthcare professionals globally across specialties, making this the week\'s highest single-article HCP reach event.', industry: 'KOL-authored clinical reviews in Medscape carry 5–10× greater HCP prescribing influence than company-authored press releases or even standard trade media articles. Dr. Ajani\'s MD Anderson affiliation and GI oncology KOL status make this the most credible independent clinical validation of tislelizumab\'s ESCC positioning available in current practising oncology media.', beone: 'Medical affairs should immediately identify additional GI oncology KOLs for structured engagement — seeking similar Medscape review article placements in ESCC, gastric, and nasopharyngeal cancer. The ASCO GEA guideline inclusion this week provides the perfect catalyst for a KOL-authored review series across Medscape, OncLive, and Targeted Oncology through Q2–Q3 2026.' },
+  'sig-seeking': { coverage: 'During Ascentage Q4 2025 earnings (March 26), CEO Dajun Yang claimed lisaftoclax shows lower SAE incidence and infection rates versus venetoclax or sonrotoclax. This direct CEO-level competitive challenge was made in a public earnings call and covered by Seeking Alpha — BeOne\'s primary retail investor media outlet at 6 articles this week.', industry: 'CEO-level competitive challenges made in public earnings calls create permanent records that appear in equity research, analyst notes, and competitor monitoring databases. Seeking Alpha\'s retail investor audience ($BGNE holders) will encounter this safety claim repeatedly as sonrotoclax advances toward pivotal trials — making a proactive data-driven response essential before Phase 3 data is available.', beone: 'BeOne medical affairs should prepare a proactive sonrotoclax safety profile data package: published Phase 1/2 safety data, comparisons with venetoclax class effects, and differentiated toxicity profile narrative. This should be distributed through medical affairs channels (congresses, HCP meetings) rather than promotional channels, positioning BeOne ahead of Ascentage\'s narrative before pivotal trial readout.' },
+  'sig-endpoints': { coverage: 'Max Bayer\'s two Endpoints News articles this week — Trump HHS "war on China biotech" rhetoric and biopharma PDUFA America First pushback — reach BeOne\'s most consequential audience: pharma CEOs, VPs, and major institutional investors. Endpoints News is the primary C-suite pharma media outlet for US policy intelligence.', industry: 'The convergence of HHS executive rhetoric ("a war"), legislative activity (National Security Commission on Biotechnology), and academic evidence (Georgetown study) in a single week signals a sustained escalation of the US-China biotech geopolitical narrative — not a one-cycle story. This creates structured regulatory and reputational risk for dual-US-China pharma companies through at least mid-2027.', beone: 'A dedicated Washington DC policy engagement strategy is now essential: (1) Corporate communications to refresh US-first messaging — US headquarters, US jobs, US manufacturing, (2) Government affairs to engage FDA and key congressional offices proactively, (3) Legal to assess BIOSECURE Act and similar legislative exposure, (4) Executive communications to position CEO John Oyler as US-based oncology leader in domestic media.' },
+  'daily-volume': { coverage: 'BeOne Medicines generated 143 articles across 5 days (March 23–27, 2026) maintaining a 29-article daily average. Thursday peaked at 32, driven by BeiGene\'s landmark FY2025 financial results. No single day fell below 26 articles — a density atypical for a non-conference week and a signal of BeOne\'s mature earned media capability.', industry: 'Sustaining 26–32 articles per day on commercial and pipeline news alone — without a major conference or clinical readout — is characteristic of large-cap pharma communications maturity. Most mid-cap oncology companies generate this volume only during ASCO, ASH, or ESMO conference weeks. BeOne is operating at large-cap media velocity while still holding mid-cap valuation multiples.', beone: 'Midweek scheduling (Tuesday–Thursday) consistently generates peak media volume: Tuesday\'s BGB-B2033 orphan drug (30 articles) and Thursday\'s financial results (32 articles) both correlate with planned announcement activity. The communications team should formalise midweek timing as the default for all significant announcements in Q2–Q4 2026 planning.' },
+  'stock-impact': { coverage: 'BeOne/BeiGene stock declined −3.5% following the FDA OPDP Untitled Letter announcement (March 25). The stock fully recovered within two trading days — consistent with precedent at Eli Lilly, Novo Nordisk, and HIMS in 2025 for comparable OPDP actions. Social media investor accounts actively reframed the recovery as evidence of Brukinsa franchise durability.', industry: 'OPDP Untitled Letters historically generate 24–72 hour negative equity reactions followed by full recovery when no further escalation occurs. The two-day recovery timeline for BeOne is among the fastest on record for a DTC enforcement action, reflecting strong underlying investor conviction in the Brukinsa commercial thesis despite the regulatory overhang.', beone: 'The rapid stock recovery, combined with the same-day ASCO guideline inclusion news and the @Gobbb111 tweet reframing (1,083 views, 38 likes), demonstrates BeOne\'s communications infrastructure can contain contained regulatory crises effectively. Documenting this recovery case study provides a reusable crisis communications playbook for future OPDP or regulatory action scenarios.' },
+  'theme-brukinsa': { coverage: 'Brukinsa/zanubrutinib led all themes at 24 mentions — spanning FY2025 record revenue ($3.93B, +48.6%), first-ever annual profit ($287M), Wolfe Research Buy initiation, FDA OPDP DTC letter, P4AD affordability citation ($14K/month), BTK-venetoclax combination coverage in Nature, BG-71332 Phase 1 completion, and recognition as the first Chinese innovative drug to defeat a global blockbuster head-to-head in a Phase 3 trial.', industry: 'Brukinsa\'s 24-mention dominance across clinical, financial, regulatory, and investor verticals in a single non-conference week signals that the brand has achieved "all-weather" media presence — it generates news independently of trial readouts, conferences, or product approvals. This is a hallmark of top-20 oncology brand maturity, typically associated with pembrolizumab, ibrutinib, or lenalidomide at comparable stages.', beone: 'The breadth of Brukinsa coverage across clinical (Nature, ASCO), financial (Longbridge, TipRanks), regulatory (OPDP), and investor (Wolfe) verticals demonstrates BeOne has built a multi-stakeholder media infrastructure for Brukinsa. The communications team should develop a quarterly coverage calendar to systematically maintain this multi-vertical presence through Brukinsa\'s full commercial lifecycle.' },
+  'theme-tislelizumab': { coverage: 'Tislelizumab/Tevimbra generated 21 mentions in a tale of two narratives: ASCO GEA guideline inclusion and ESCC SOC recognition (high-impact positives) vs. G-BA "Not Proven" Germany, HIRA South Korea denial, and HARMONi-6 ivonescimab competitive superiority in squamous NSCLC (significant negatives). The brand is generating significant media volume across multiple indications simultaneously.', industry: 'The divergence between tislelizumab\'s clinical credentialing (ASCO guideline) and market access setbacks (Germany, South Korea) reflects a systemic challenge for IO agents entering markets with established PD-1/PD-L1 comparators: AMNOG and HIRA both require locally-adapted evidence that RATIONALE trial designs did not anticipate. HARMONi-6 adds a third front requiring biomarker-differentiated competitive response.', beone: 'Three parallel communications tracks are required: (1) ASCO guideline amplification in HCP and payer-facing channels (commercial), (2) Proactive G-BA and HIRA HTA dialogue with redesigned evidence generation plans (market access), (3) Biomarker-differentiated scientific narrative for non-squamous NSCLC and PD-L1-defined populations (medical affairs). Each track requires different stakeholders, timelines, and messaging.' },
+  'theme-fda': { coverage: 'FDA/Regulatory generated 14 mentions — an active week combining positive (BGB-B2033 orphan drug designation), negative (OPDP Untitled Letter), and contextual (PDUFA America First, GDUFA IV, FDA layoff spending) coverage. The regulatory theme count reflects BeOne\'s broad FDA-facing engagement across multiple programmes simultaneously.', industry: 'The FDA regulatory environment in 2026 is simultaneously more accommodating (National Priority Voucher enabling 44-day approvals, orphan drug incentives) and more challenging (America First PDUFA proposals potentially disadvantaging non-US clinical development, FDA capacity constraints from layoffs). This paradox creates strategic uncertainty requiring a diversified regulatory pathway strategy.', beone: 'BeOne\'s dual exposure — benefiting from FDA accelerated pathways (orphan drug, fast track) while facing potential disadvantage from America First user-fee and Phase 1 location proposals — requires a nuanced Washington DC regulatory engagement strategy. The BGB-B2033 orphan drug success demonstrates BeOne\'s FDA regulatory competency; this should be highlighted in stakeholder communications as evidence of US regulatory integration.' },
+  'theme-china': { coverage: 'China Biotech Strategy generated 13 mentions spanning BeOne\'s global success benchmark citation (Scrip Intelligence), $135B out-licensing ecosystem (Jing Daily), Georgetown dual-hub study, Trump HHS "war" rhetoric (Endpoints News), and congressional hearings on Chinese biotech competition. BeOne features as both a positive reference point and a potentially exposed entity in these narratives.', industry: 'The US-China biotech dynamic shifted materially this week with three converging signals: executive ("war" rhetoric from HHS), academic (Georgetown study confirming China\'s growing early-stage share), and legislative (National Security Commission biotech investor roundtable). This convergence signals a sustained policy escalation that will shape the regulatory and investment environment for dual US-China companies through at least 2027.', beone: 'BeOne\'s unique positioning as a genuine global oncology company is both its greatest strategic asset and its most complex communication challenge in the current environment. A proactive narrative positioning BeOne as "born in China, built for the world" — with US headquarters, US commercial operations, US-listed stock, and US-first clinical development — is essential for managing Washington policy risk and institutional investor confidence simultaneously.' },
+  'theme-pipeline': { coverage: 'Pipeline & R&D generated 12 mentions covering four distinct programmes: BGB-16673 BTK degrader Phase 3 plans (CMO interview), BG-71332 combo pill Phase 1 completion, BGB-B2033 HCC orphan drug status, and BGB-43395 CDK4 inhibitor Phase 3 preparation. Four pipeline programmes generating simultaneous media volume in a non-data-readout week demonstrates multi-programme communications maturity.', industry: 'The co-occurrence of four distinct pipeline programmes generating media volume in a single non-readout week signals BeOne\'s successful transition from a single-asset (Brukinsa) to a multi-programme oncology franchise. This transition is typically associated with institutional investor re-rating from single-product risk to diversified pipeline probability — a structural positive for $BGNE valuation multiples.', beone: 'BeOne\'s four-programme pipeline media footprint this week provides the foundation for a "pipeline density" investor narrative distinct from the Brukinsa commercial story. Sequencing is critical: BGB-16673 degrader (near-term Phase 3 catalyst), BG-71332 combo pill (filing-ready), BGB-43395 CDK4 (Phase 3 start H1 2026), BGB-B2033 HCC (Phase 1 advancing). Each requires tailored communications with different timelines, audiences, and channels.' }
+};
+
+function showAIModal() { document.getElementById('ai-overlay').classList.add('open'); }
+function closeAI(e) {
+  if (!e || e.target === document.getElementById('ai-overlay'))
+    document.getElementById('ai-overlay').classList.remove('open');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAI(); });
+
+function renderAIModal(ins, tags = []) {
+  document.getElementById('ai-modal-body').innerHTML = `
+    <div class="ai-section coverage">
+      <h4>📊 Coverage Insight</h4>
+      <p>${ins.coverage}</p>
+    </div>
+    <div class="ai-section industry">
+      <h4>🏭 Industry Impact</h4>
+      <p>${ins.industry}</p>
+    </div>
+    <div class="ai-section beone">
+      <h4>💊 BeOne Strategic Impact</h4>
+      <p>${ins.beone}</p>
+    </div>
+    ${tags.length ? `<div class="ai-tags">${tags.map(t => `<span class="ai-tag">${t}</span>`).join('')}</div>` : ''}`;
+}
+
+function openModal(key) {
+  showAIModal();
+  document.getElementById('ai-modal-body').innerHTML =
+    '<div class="ai-loading"><div class="ai-spinner"></div><p>Generating structured insight…</p></div>';
+
+  const lookupKey = key === 'daily-volume' ? 'volume' : key;
+  const ins = KPI_INSIGHTS[lookupKey] || SIGNAL_INSIGHTS[lookupKey] || AI_INSIGHTS[lookupKey] || AI_INSIGHTS['volume'];
+
+  const tagMap = {
+    'kpi-volume':        ['143 articles', '5 days', '29/day avg'],
+    'daily-volume':      ['Peak Thu 32', '26 min', '29 avg'],
+    'kpi-sentiment':     ['39% positive', '52% neutral', '8% negative'],
+    'kpi-negative':      ['3 crisis items', 'Tevimbra-focused', 'Brukinsa contained'],
+    'kpi-revenue':       ['$3.93B Brukinsa', '+48.6% YoY', 'First profitable year'],
+    'kpi-pubs':          ['Pink Sheet #1', 'OncLive HCP', 'Tier 1 coverage'],
+    'sentiment-split':   ['39% positive', '8% negative', 'Below pharma avg'],
+    'daily-sent':        ['Fri best ratio', 'Wed OPDP dip', 'Thu peak positive'],
+    'sections':          ['BeOne Ann. 22%', 'Gen Onc. 17%', 'Tweets 13%'],
+    'all-themes':        ['Top 10 themes', 'Brukinsa #1', 'AI 7 mentions'],
+    'brand-vs-industry': ['57 brand', '54 industry', 'Near-equal split'],
+    'all-pubs':          ['8 outlets', 'Pink Sheet #1', 'Tier 1–3 covered'],
+    'all-authors':       ['8 key authors', 'Armstrong top', 'Ajani KOL'],
+    'pub-tier1':         ['Pink Sheet', 'Endpoints', 'Scrip + STAT'],
+    'pub-pink':          ['8 articles', 'Gingery ×3', 'Regulatory focus'],
+    'pub-onclive':       ['7 articles', '256 views CLL', 'HCP prescribers'],
+    'auth-armstrong':    ['Oncology Pipeline', 'CMO interview', 'Fund mgr reach'],
+    'auth-kol':          ['Medscape', '3.5M+ HCPs', 'ESCC SOC'],
+    'signals':           ['6 signals', '3 positive', '3 risk/watch'],
+    'sig-rev':           ['$3.93B', '+48.6%', '$287M profit'],
+    'sig-asco':          ['ASCO guideline', 'GEA 1L', 'SOC alongside pembro'],
+    'sig-wolfe':         ['Buy initiation', 'New coverage', 'CLL thesis'],
+    'sig-btk':           ['Phase 3 plans', 'CMO interview', 'BTK degrader'],
+    'sig-fda':           ['OPDP letter', '−3.5% stock', '2-day recovery'],
+    'sig-harmoni':       ['HARMONi-6', 'Sq. NSCLC', 'Competitive watch'],
+    'sig-oncpipe':       ['Evaluate/Citeline', 'CMO access', 'Fund mgr reach'],
+    'sig-ascoformal':    ['5 ASCO articles', 'GEA guideline', 'KOL credentialing'],
+    'sig-scrip':         ['Scrip Intelligence', 'Benchmark citation', 'Premium subs'],
+    'sig-medscape':      ['3.5M+ HCPs', 'Dr. Ajani KOL', 'ESCC SOC'],
+    'sig-seeking':       ['Ascentage CEO', 'Sonrotoclax safety', 'Monitor'],
+    'sig-endpoints':     ['"War" rhetoric', 'HHS CPAC', 'US-China risk'],
+    'crisis-full':       ['2 high', '1 medium', '1 watch'],
+    'stock-impact':      ['−3.5%', '2-day recovery', 'OPDP precedent'],
+    'exec-ai':           ['143 articles', '$3.93B revenue', '3 escalation items'],
+    'pos-revenue':       ['Thu peak', '14 positive', 'Multi-audience'],
+    'pos-asco2':         ['ASCO guideline', 'Highest-impact', 'SOC credentialing'],
+    'neg-fda2':          ['OPDP letter', 'Contained', '−3.5% recovered'],
+    'watch-harmoni':     ['Sq. NSCLC only', 'Biomarker watch', 'Non-squamous safe'],
+    'info-pricing':      ['$14K/month', 'P4AD report', 'Policy escalation risk'],
+    'pos-ai':            ['AI Innovation Lab', 'First mover', 'No competitor match'],
+    'mit-fda':           ['30-day response', 'DTC audit', 'Corrective ad'],
+    'mit-gba':           ['AMNOG mismatch', 'Early dialogue', 'Managed entry'],
+    'mit-hira':          ['HEOR redesign', 'APAC cascade', '6–9 month resubmit'],
+    'mit-harmoni':       ['30-day deadline', 'Biomarker data', 'KOL briefing'],
+    'mit-pricing':       ['PAP visibility', 'Net price data', 'Pink Sheet brief'],
+    'mit-geo':           ['US-first messaging', 'DC engagement', 'BIOSECURE watch'],
+    'theme-brukinsa':    ['24 mentions', '#1 theme', 'All-weather brand'],
+    'theme-tislelizumab':['21 mentions', 'Mixed sentiment', '3 parallel tracks'],
+    'theme-fda':         ['14 mentions', 'OPDP + orphan', 'America First'],
+    'theme-china':       ['13 mentions', 'Geopolitical risk', 'Benchmark cited'],
+    'theme-pipeline':    ['12 mentions', '4 programmes', 'Multi-asset']
+  };
+  const tags = tagMap[key] || [];
+
+  setTimeout(() => renderAIModal(ins, tags), 280);
+}
+
+// Legacy alias — kept for any remaining inline onclick calls
+function closeModal() { closeAI(); }
+
+// ══════════════════════
+// TAB SWITCHING — TOP LEVEL
+// ══════════════════════
+function switchTopTab(id) {
+  document.querySelectorAll('.top-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.top-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('topPane-' + id).classList.add('active');
+  document.getElementById('top-' + id).classList.add('active');
+}
+
+// ══════════════════════
+// TAB SWITCHING — SIDEBAR SECTIONS
+// ══════════════════════
+function switchSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.side-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  document.getElementById('sidetab-' + id).classList.add('active');
+  if (id === 'overview') { renderVolumeTrendline(); renderSentimentTrendline(); renderSectionBars(); }
+  if (id === 'themes') { renderThemeBars(); renderDailySentBars(); }
+  const ca = document.getElementById('weekly-content');
+  if (ca) ca.scrollTop = 0;
+}
+
+function switchTab(id) { switchSection(id); }
+
+// ══════════════════════
+// RENDER DAILY VOLUME TIMELINE
+// ══════════════════════
+function renderVolumeTimeline() {
+  const data = [28, 30, 27, 32, 26];
+  const labels = ['Mon 23', 'Tue 24', 'Wed 25', 'Thu 26', 'Fri 27'];
+  const max = Math.max(...data);
+  const el = document.getElementById('vol-timeline');
+  if (!el) return;
+  el.innerHTML = data.map((v, i) => `
+    <div class="tbar-col">
+      <div class="tbar-val">${v}</div>
+      <div class="tbar-fill" style="height:${Math.round(v/max*60)+10}px"></div>
+      <div class="tbar-label">${labels[i]}</div>
+    </div>`).join('');
+}
+
+// ══════════════════════
+// RENDER SECTION BREAKDOWN BARS
+// ══════════════════════
+function renderSectionBars() {
+  const data = [
+    { label: 'BeOne Announcements', val: 31, cls: '' },
+    { label: 'General Oncology', val: 24, cls: 'bar2' },
+    { label: 'Tweets / Social', val: 19, cls: '' },
+    { label: 'Industry & Policy', val: 16, cls: 'bar2' },
+    { label: 'Hematology', val: 15, cls: '' },
+    { label: 'China Biotech', val: 15, cls: 'bar2' },
+    { label: 'Solid Tumor', val: 11, cls: '' },
+    { label: 'Key Competitor', val: 7, cls: 'red' },
+    { label: 'New & Noteworthy', val: 5, cls: 'green' },
+  ];
+  const max = 31;
+  const el = document.getElementById('section-bars');
+  if (!el) return;
+  el.innerHTML = data.map(d => `
+    <div class="bar-row">
+      <span class="bar-label wide">${d.label}</span>
+      <div class="bar-wrap"><div class="bar-fill ${d.cls}" style="width:${Math.round(d.val/max*100)}%"></div></div>
+      <span class="bar-nums">${d.val}</span>
+    </div>`).join('');
+}
+
+// ══════════════════════
+// RENDER THEME BARS
+// ══════════════════════
+function renderThemeBars() {
+  const themes = [
+    { label: 'Zanubrutinib / Brukinsa', val: 24 },
+    { label: 'Tislelizumab / Tevimbra', val: 21 },
+    { label: 'Clinical Trial Data', val: 19 },
+    { label: 'BTK Inhibitors (class)', val: 17 },
+    { label: 'FDA / Regulatory', val: 14 },
+    { label: 'China Biotech Strategy', val: 13 },
+    { label: 'Pipeline & R&D', val: 12 },
+    { label: 'Partnerships & Deals', val: 11 },
+    { label: 'Drug Pricing / Access', val: 9 },
+    { label: 'AI in Oncology', val: 7 },
+  ];
+  const max = 24;
+  const el = document.getElementById('theme-bars');
+  if (!el) return;
+  el.innerHTML = themes.map(t => `
+    <div class="bar-row">
+      <span class="bar-label wide">${t.label}</span>
+      <div class="bar-wrap"><div class="bar-fill" style="width:${Math.round(t.val/max*100)}%"></div></div>
+      <span class="bar-nums">${t.val}</span>
+    </div>`).join('');
+}
+
+// ══════════════════════
+// RENDER DAILY SENTIMENT BARS
+// ══════════════════════
+function renderDailySentBars() {
+  const data = [
+    { day: 'Mon 23', pos: 8, neut: 17, neg: 3 },
+    { day: 'Tue 24', pos: 12, neut: 15, neg: 3 },
+    { day: 'Wed 25', pos: 9, neut: 16, neg: 2 },
+    { day: 'Thu 26', pos: 14, neut: 15, neg: 3 },
+    { day: 'Fri 27', pos: 13, neut: 12, neg: 1 },
+  ];
+  const el = document.getElementById('daily-sent-bars');
+  if (!el) return;
+  el.innerHTML = data.map(d => {
+    const total = d.pos + d.neut + d.neg;
+    return `
+      <div style="margin-bottom:12px">
+        <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:4px">${d.day} <span style="font-size:10px;color:var(--text-mid);font-weight:400">(${total} articles)</span></div>
+        <div style="display:flex;height:8px;border-radius:4px;overflow:hidden">
+          <div style="width:${Math.round(d.pos/total*100)}%;background:#059669"></div>
+          <div style="width:${Math.round(d.neut/total*100)}%;background:#d97706"></div>
+          <div style="width:${Math.round(d.neg/total*100)}%;background:#CC0000"></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:3px">
+          <span style="font-size:10px;color:#059669">✅ ${d.pos}</span>
+          <span style="font-size:10px;color:#d97706">— ${d.neut}</span>
+          <span style="font-size:10px;color:#CC0000">🔴 ${d.neg}</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ══════════════════════
+// DAILY REPORTS DATA
+// ══════════════════════
+const REPORTS = {
+  mar23: {
+    day:'Monday', date:'March 23, 2026', total:28, pos:8, neg:3, neut:17,
+    summary:'Opened with G-BA "Not Proven" regulatory negative for Tevimbra in Germany, balanced by strong clinical positives including a zanubrutinib del(17p)/TP53 CLL podcast from IACH tagging @BeOneMedicines directly, and BioSignal highlighting BGB-43395 pipeline momentum.',
+    sections:[
+      { title:'New & Noteworthy', color:'#1C3858', articles:[
+        { title:'BMS Transforms Classical Hodgkin Lymphoma Treatment with Dual Opdivo Approvals', src:'BMS Press Release', sent:'neut', date:'2026/03/20', sum:'Bristol Myers Squibb announced dual FDA and EU approvals for Opdivo (nivolumab) in classical Hodgkin Lymphoma — FDA approval for adult/pediatric patients 12+ with Stage III/IV cHL based on SWOG 1826, and EU approval for patients 5+ with relapsed/refractory cHL. Reinforces competitive pressure in hematology-oncology where Brukinsa competes.' }
+      ]},
+      { title:'BeOne Announcements & News', color:'#E04028', articles:[
+        { title:'Australian PBS Reviews CLL/SLL Treatment — Zanubrutinib Cost Impact Noted', src:'PBS.gov.au', sent:'neut', date:'2026/03/20', sum:'Australia\'s Drug Utilisation Sub-Committee reviewed PBS medications for CLL/SLL and found government costs for first-line therapy increased substantially due to the listing of zanubrutinib in September 2023. Reflects strong uptake in the Australian market despite cost scrutiny.' },
+        { title:'Zanubrutinib in High-Risk CLL: del(17p)/TP53 Disease — @BeOneMedicines Tagged', src:'IACH News / SoundCloud', sent:'pos', date:'2026/03/23', sum:'IACH News discussed a Blood Advances analysis of zanubrutinib specifically in del(17p)/TP53 CLL. Zanubrutinib\'s greater selectivity and sustained BTK occupancy highlighted as key differentiators vs. earlier-generation BTKi. @BeOneMedicines specifically tagged — 154 views, 2 reposts.' },
+        { title:'G-BA Gives Tevimbra "Not Proven" Added Benefit Rating in First-Line ES-SCLC', src:'Navlin Daily', sent:'neg', date:'2026/03/20', crisis:true, sum:'The German Federal Joint Committee rated Tevimbra as "Not Proven" added benefit for first-line ES-SCLC. RATIONALE 312 compared against chemotherapy alone rather than the AMNOG-defined comparator — making the dossier ineligible. Tevimbra\'s list price EUR 1,723.42 per 100mg. Critical reimbursement setback requiring redesigned submission strategy.' },
+        { title:'Peer-Reviewed Comparison of Tislelizumab, Sintilimab & Camrelizumab in Wild-Type NSCLC', src:'Cancer Network', sent:'neut', date:'2026/03/20', sum:'Study compared three PD-1 inhibitors with chemotherapy in inoperable wild-type advanced NSCLC. Tislelizumab\'s unique Fc receptor-binding modifications noted as a potential differentiator. Published in Cancer Network — important HCP-facing oncology credentialing territory.' },
+        { title:'Monjuvi (tafasitamab) Faces Uncertain Future — Brukinsa Named as Competitor', src:'AD HOC NEWS', sent:'neut', date:'2026/03/20', sum:'Analysis of MorphoSys\'s Monjuvi post-Novartis acquisition cited Brukinsa as a key competitive threat in B-cell therapies alongside Polivy and emerging bispecifics. Reinforces Brukinsa\'s growing presence across hematology malignancies.' }
+      ]},
+      { title:'Industry & Policy News', color:'#6D40C4', articles:[
+        { title:'FDA Schedules Public Meeting on Commissioner\'s National Priority Voucher Pilot', src:'FDA.gov', sent:'neut', date:'2026/03/20', sum:'FDA announced a public hearing on June 12 on the CNPV pilot program enabling cancer drug approvals in as few as 44 days. Relevant for BeOne\'s pipeline strategy and accelerated approval planning.' },
+        { title:'Unlocking NHS Data Could Boost UK Clinical Trial Recruitment', src:'ABPI Press Release', sent:'neut', date:'2026/03/23', sum:'ABPI report argues NHS health data could rapidly increase patient recruitment for industry trials. UK participation fell to 3.4% of all trial participants — its lowest since 2017/18. Could benefit BeOne\'s UK clinical development footprint.' },
+        { title:'Iran War Has Not Yet Disrupted Pharma Supply Chains — But Risk Grows', src:'STAT News', sent:'neut', date:'2026/03/20', sum:'Industry experts confirmed the Middle East conflict has not materially disrupted global pharma supply chains yet. However, a prolonged conflict could alter production, shipping, and pricing — a macro risk for BeOne\'s global manufacturing.' },
+        { title:'Biopharma Could Serve as Investment Haven Amid Middle East Conflict', src:'BioSpace', sent:'pos', date:'2026/03/20', sum:'Truist Securities analysis suggested oncology-focused, cash-rich companies like BeOne present differentiated risk-return profiles in turbulent markets — positioning biopharma as a potential investment haven.' }
+      ]},
+      { title:'Solid Tumor Industry News', color:'#D4426A', articles:[
+        { title:'ADCs Moving into Earlier Lines in Breast Oncology — Reshaping HER2+ and TNBC Treatment', src:'OncLive', sent:'neut', date:'2026/03/20', sum:'Market overview highlighted rapid movement of ADCs into earlier lines. Important context for BeOne\'s own ADC pipeline including DualityBio partnerships and internal programs advancing in multiple solid tumor indications.' }
+      ]},
+      { title:'China Biotech Industry News', color:'#5E7898', articles:[
+        { title:'Dizal Announces Positive Phase 3 Results for Sunvozertinib in EGFR Exon20ins NSCLC', src:'Dizal Press Release', sent:'pos', date:'2026/03/21', sum:'Phase 3 WU-KONG28 met its primary PFS endpoint vs. platinum-based chemotherapy as first-line treatment for NSCLC with EGFR exon20ins mutations. BeOne tracks closely given its NSCLC combination strategy with tislelizumab.' },
+        { title:'AstraZeneca Deepens China Push with Shanghai Cell Therapy Manufacturing Base', src:'The Pharma Letter', sent:'neut', date:'2026/03/20', sum:'AstraZeneca announced a commercial CAR-T manufacturing base in Shanghai\'s Lingang Free Trade Zone following its $15B China investment pledge. Signals growing importance of China as a strategic manufacturing hub.' },
+        { title:'China Commerce Minister Meets Pharma Executives Amid Foreign Investment Push', src:'Reuters', sent:'neut', date:'2026/03/22', sum:'China\'s Commerce Minister met with U.S. pharma trade association leadership. China\'s 15th Five-Year Plan explicitly lists biopharmaceuticals as an emerging pillar industry with expanded tax and land-use incentives. BeOne well-positioned.' }
+      ]},
+      { title:'Tweets of Interest', color:'#C88A1A', isTweet:true, articles:[
+        { title:'@ASCOPost: RATIONALE-309 (3-yr f/u) — Tislelizumab Delivers Sustained PFS in Nasopharyngeal Cancer', src:'Twitter/X · @ASCOPost', sent:'pos', date:'2026/03/23', sum:'ASCO Post shared 3-year follow-up from RATIONALE-309: mPFS 9.6 vs 7.4 months (HR=0.53), mOS 45.3 vs 31.8 months (HR=0.73). Published in JAMA Oncology. 4 reposts, 671 views.' },
+        { title:'@TheIACH: Zanubrutinib Podcast Tagged @BeOneMedicines for High-Risk CLL', src:'Twitter/X · @TheIACH', sent:'pos', date:'2026/03/23', sum:'IACH specifically tagged @BeOneMedicines on a zanubrutinib high-risk CLL podcast (del(17p)/TP53), linking to a Blood Advances analysis. 154 views, 1 repost. Direct brand amplification within specialist clinical audience.' },
+        { title:'@BioSignal: BGB-43395 as Potential Best-In-Class CDK4 Inhibitor with 3.1% Grade ≥3 Neutropenia', src:'Twitter/X · @BioSignal', sent:'pos', date:'2026/03/23', sum:'BioSignal highlighted BGB-43395 CDK4-selective inhibitor with only 3.1% Grade ≥3 neutropenia vs. competitors. Moving to pivotal Phase 3 for first-line and adjuvant markets in H1 2026. Tagged $BGNE — 95 views, 3 likes.' }
+      ]}
+    ]
+  },
+  mar24: {
+    day:'Tuesday', date:'March 24, 2026', total:30, pos:12, neg:3, neut:15,
+    summary:'Strongest positive day of the week. BGB-B2033 FDA orphan drug designation led New & Noteworthy. DualityBio $6B+ partnership, Clare Fisher board nomination, and Empowered Patient Radio AI collaboration drove 8 BeOne Announcement articles. Stock losers mention and P4AD drug pricing analysis were the two items to monitor.',
+    sections:[
+      { title:'New & Noteworthy', color:'#1C3858', articles:[
+        { title:'BeOne Medicines Gains FDA Orphan Drug Status for BGB-B2033 in Hepatocellular Carcinoma', src:'Seeking Alpha', sent:'pos', date:'2026/03/23', sum:'FDA granted orphan drug status to BeOne\'s BGB-B2033 — a Phase 1 IgG-based bispecific antibody targeting GPC3 and 4-1BB — for HCC. BeOne noted potential synergy with Tevimbra. Provides 7 years of U.S. market exclusivity and clinical trial tax credits.' }
+      ]},
+      { title:'BeOne Announcements & News', color:'#E04028', articles:[
+        { title:'DualityBio 2025 Annual Results Highlight BeOne as Core Partner in $6B+ Global ADC Portfolio', src:'Duality Biotherapeutics PR', sent:'pos', date:'2026/03/24', sum:'DualityBio cited BeOne as a core partner in a global ADC deal portfolio exceeding US$6B total transaction value alongside BioNTech, GlaxoSmithKline, Adcendo, and Avenzo. Reinforces BeOne\'s positioning as the preferred strategic partner for Chinese biotech innovation commercialization.' },
+        { title:'Molecular Partners Nominates Clare Fisher (BeOne SVP Business Development) to Board', src:'Molecular Partners PR', sent:'pos', date:'2026/03/23', sum:'Molecular Partners nominated Clare Fisher, BeOne\'s SVP for Global Business Development & M&A, for election to its Board at the 2026 AGM. This executive board placement signals BeOne\'s BD leadership as sought-after governance talent across the global biotech ecosystem.' },
+        { title:'P4AD Analysis: Brukinsa Named by Cancer Patient Facing $14,000/Month After-Insurance Cost', src:'Patients For Affordable Drugs', sent:'neg', date:'2026/03/23', sum:'Patients For Affordable Drugs cited Brukinsa in a high-profile drug affordability report — a Kentucky patient citing a $14,000/month cost burden for CLL. The report covered 64 oncology price hikes in early 2026, with 73% exceeding inflation. High media amplification risk in policy discussions.' },
+        { title:'Oncology\'s Next Decade: BeOne Cited as Chinese Innovation Pioneer in $400B Market', src:'In Vivo', sent:'pos', date:'2026/03/24', sum:'In Vivo analysis highlighted BeOne\'s Brukinsa launching in the U.S. eight months before its China approval — a model reversal from traditional Western-to-China sequencing. Nearly 70% of 2024 oncology drug launches involved Chinese companies or partnerships.' },
+        { title:'AI in Blood Cancer Patient Care: BeOne Partners Lymphoma Research Foundation', src:'Empowered Patient Radio', sent:'pos', date:'2026/03/23', sum:'Jennifer Branstetter (EVP North America Corporate Affairs) and Meghan Gutierrez (CEO, Lymphoma Research Foundation) discussed a patient-centric AI collaboration on Empowered Patient Radio. Establishes BeOne\'s AI-in-patient-care narrative ahead of its Innovation Lab announcement Friday.' },
+        { title:'BTK Inhibitors in CLL: Clinical Comparison of Brukinsa and Jaypirca (Pirtobrutinib)', src:'The Healthcare Guys', sent:'neut', date:'2026/03/23', sum:'Clinical comparison reviewed differences between Brukinsa (covalent irreversible) and Jaypirca (non-covalent reversible, active in BTK C481S-mutant disease). Brukinsa\'s broader indication breadth cited as a differentiator in the defining BTKi clinical comparison.' },
+        { title:'MAIA Biotechnology\'s Collaboration with BeiGene: Tislelizumab for NSCLC Combination Trials', src:'Valye News', sent:'pos', date:'2026/03/23', sum:'MAIA highlighted the BeiGene/BeOne partnership providing tislelizumab supply for combination trials with ateganosine in solid tumors. MAIA has FDA Fast Track designation and is targeting accelerated approval filing for NSCLC in 2026.' },
+        { title:'China 2026 Tech Breakthroughs: BeiGene Among $135B Out-Licensing Leaders', src:'Jing Daily', sent:'pos', date:'2026/03/23', sum:'China led global clinical trials in 2025 with 7,100+ new trials, surpassing the U.S. for a second consecutive year. BeiGene and Innovent cited as driving $135B in out-licensing deals in 2025.' },
+        { title:'BeOne Among Top 10 Biggest Stock Losers for Week of March 16–20 (−$8.77)', src:'BioWorld', sent:'neg', date:'2026/03/23', sum:'BioWorld\'s weekly analysis listed BeOne among the top 10 biggest losers for the week of March 16–20, recording a change of −$8.77. No specific catalyst identified. Social media commentary suggests the market movement is considered overdone relative to fundamentals.' }
+      ]},
+      { title:'Industry & Policy News', color:'#6D40C4', articles:[
+        { title:'BIO Board Member Advises Congress: China\'s Clinical Trial Speed Creates Competitive Gap', src:'Bio.News', sent:'neut', date:'2026/03/23', sum:'Dr. Jacob Becraft testified before the House Select Committee on China, explaining how China\'s accelerated clinical trial infrastructure creates biotech competitive advantages. BeOne\'s dual U.S.-China identity makes it a particularly sensitive subject in this geopolitical context.' },
+        { title:'White House Pitches Pharma on Most-Favored-Nation Drug Pricing Framework', src:'Washington Post', sent:'neut', date:'2026/03/23', sum:'The Trump administration is pursuing MFN pricing agreements that would link U.S. medicine prices to lower international prices. Relevant for BeOne given Brukinsa\'s premium pricing in the U.S. market and the growing affordability narrative.' }
+      ]},
+      { title:'China Biotech Industry News', color:'#5E7898', articles:[
+        { title:'Dizal\'s Zegfrovy (Sunvozertinib) Clinches Phase 3 Win in EGFR Exon20ins NSCLC', src:'FiercePharma', sent:'pos', date:'2026/03/23', sum:'Global Phase 3 WU-KONG28 testing Zegfrovy monotherapy met primary PFS endpoint vs. platinum-based chemotherapy in treatment-naïve EGFR exon20ins NSCLC. Positions Zegfrovy as a direct competitor to J&J\'s Rybrevant in an important NSCLC subtype.' },
+        { title:'China\'s Out-Licensing of Innovative Assets Seen as Rational Policy-Driven Strategy', src:'Pink Sheet', sent:'neut', date:'2026/03/24', sum:'Pink Sheet analysis argued China\'s current wave of out-licensing represents rational, policy-supported strategy. China\'s government included commercial health insurance acceleration and biopharma investment promotion in its 2026 development plans.' }
+      ]},
+      { title:'Tweets of Interest', color:'#C88A1A', isTweet:true, articles:[
+        { title:'@CancerNetwrk: Tislelizumab Shows Superior PFS in PD-L1+ NSCLC Subgroups', src:'Twitter/X', sent:'pos', date:'2026/03/24', sum:'CancerNetwork highlighted the ONCOLOGY journal case study showing superior PFS with tislelizumab in PD-L1-positive NSCLC subgroups. 2 likes, 172 views. Important HCP amplification for tislelizumab\'s biomarker-differentiated narrative.' },
+        { title:'@GiOncNow: Zanidatamab + Tislelizumab Benefits HER2+ Gastric Cancer (HERIZON-GEA-01)', src:'Twitter/X', sent:'pos', date:'2026/03/24', sum:'GI Oncology Now featured HERIZON-GEA-01 results showing benefits of zanidatamab combined with tislelizumab and chemotherapy for HER2+ gastric cancers. 51 views. Reinforces tislelizumab\'s role in HER2+ combination strategies in GI oncology.' },
+        { title:'@Valye: MAIA + BeiGene Collaboration for Tislelizumab Combination Highlighted', src:'Twitter/X', sent:'pos', date:'2026/03/24', sum:'Valye AI financial analytics platform highlighted the MAIA-BeiGene collaboration including tislelizumab supply deal for combination trials in solid tumors. Tagged $MAIA and multiple biotech-focused financial accounts — 19 views.' }
+      ]}
+    ]
+  },
+  mar25: {
+    day:'Wednesday', date:'March 25, 2026', total:27, pos:9, neg:2, neut:16,
+    summary:'Dominated by the FDA OPDP Untitled Letter for Brukinsa\'s DTC ad — the week\'s primary crisis item. Counter-balanced by tislelizumab\'s formal ASCO GEA guideline inclusion, the week\'s highest-impact commercial milestone. Nature published zanubrutinib BTK-venetoclax coverage.',
+    sections:[
+      { title:'New & Noteworthy', color:'#1C3858', articles:[
+        { title:'NICE Recommends KEYTRUDA for Resectable Locally Advanced Head & Neck Cancer', src:'MSD Press Release', sent:'neut', date:'2026/03/24', sum:'NICE recommended pembrolizumab for resectable, locally advanced HNSCC with PD-L1 CPS ≥1 as neoadjuvant then adjuvant therapy. Reinforces PD-1 class expansion into surgical settings and the competitive landscape for tislelizumab in head/neck oncology.' }
+      ]},
+      { title:'BeOne Announcements & News', color:'#E04028', articles:[
+        { title:'ASCO Updates Gastroesophageal Cancer Guidelines to Formally Include Tislelizumab', src:'The ASCO Post', sent:'pos', date:'2026/03/25', sum:'ASCO\'s updated GEA cancer management guidelines now formally include tislelizumab as a first-line therapy for unresectable/metastatic HER2-negative gastric or GEJ adenocarcinoma with PD-L1 expression. Tislelizumab now guideline-recommended alongside pembrolizumab and nivolumab. Highest-impact commercial placement of the week.' },
+        { title:'FDA OPDP Untitled Letter Issued to BeOne for Brukinsa DTC Television Commercial', src:'Gardner Law News', sent:'neg', date:'2026/03/24', crisis:true, sum:'FDA\'s OPDP issued an Untitled Letter to BeOne citing a Brukinsa TV commercial for: (1) creating the impression patients could safely engage in extended activities without adequately conveying risks, and (2) imbalanced benefit presentation. Stock impact limited to −3.5%, with full recovery within two days.' },
+        { title:'BTKi-Venetoclax Fixed-Duration Therapy for CLL: Zanubrutinib Among Expanding Options', src:'Nature', sent:'pos', date:'2026/03/24', sum:'A Nature article reviewed growing landscape of fixed-duration venetoclax + BTKi combinations for CLL. Zanubrutinib explicitly named as one of the active combination regimens. Published in one of the world\'s highest-impact journals — elite-tier scientific credentialing.' },
+        { title:'HARMONi-6 Trial: Ivonescimab vs. Tislelizumab + Chemo — PD-L1 Status Key Determinant', src:'Times.Now', sent:'neut', date:'2026/03/25', sum:'HARMONi-6 compared ivonescimab + chemo vs. tislelizumab + chemo in first-line squamous NSCLC. PD-L1 expression levels significantly influenced outcomes — tislelizumab maintaining competitive performance in specific biomarker-defined populations. Requires close monitoring.' },
+        { title:'BeOne Represented at 4th Pharma Omnichannel HCP Engagement Conference in Barcelona', src:'Pharma Omnichannel Excellence', sent:'pos', date:'2026/03/24', sum:'Nico Renner (BeOne, Product Manager Oncology Switzerland) participated in the Barcelona omnichannel HCP engagement conference alongside leading pharma innovators. Reinforces commitment to HCP-first omnichannel strategy in European oncology markets.' },
+        { title:'DualityBio Names BeOne Partnership in ADC Commercialization Strategy', src:'AsiaBiz Today', sent:'pos', date:'2026/03/24', sum:'DualityBio named BeOne as a key global partner in its ADC strategy alongside BioNTech, GSK, Avenzo, and Adcendo. Reinforces BeOne\'s reputation as the preferred ADC partnership anchor for Chinese-origin biotech entering global markets.' },
+        { title:'Incyte Pipeline Setback: Brukinsa Gaining Traction in Myelofibrosis BTK/JAK Space', src:'Ad-hoc-news.de', sent:'pos', date:'2026/03/24', sum:'Following Incyte\'s LIMBER-304 trial miss, Brukinsa noted as gaining traction as a BTK/JAK combination agent in myelofibrosis (projected $5B by 2030). Competitor stumbles and growing evidence create near-term commercial expansion opportunities.' }
+      ]},
+      { title:'Industry & Policy News', color:'#6D40C4', articles:[
+        { title:'MHRA Takes Action to Phase Out Animal Testing with New Approach Methodologies', src:'GOV.UK', sent:'neut', date:'2026/03/24', sum:'MHRA will offer early review of non-animal data through NAMs, reducing barriers for developers to make marketing applications without animal testing. Supports BeOne\'s drug development efficiency and emerging ESG standards.' },
+        { title:'China\'s Threat to US Prescription Drug Sector Unifying Capitol Hill', src:'Pink Sheet', sent:'neut', date:'2026/03/25', sum:'US legislators appear united on addressing Chinese dominance in prescription drugs, spanning generic API supply concerns and China\'s innovation surge. China\'s first-in-human trial leadership has FDA\'s specific attention. BeOne\'s dual U.S.-China identity creates complex political positioning.' },
+        { title:'Biotech Investors Meeting Congressional Biotech Competitiveness Commission', src:'Endpoints News', sent:'neut', date:'2026/03/24', sum:'Biotech investors will meet the National Security Commission on Emerging Biotechnology to discuss U.S. competitiveness, Trump drug pricing impacts, FDA uncertainty, and IP protections. Relevant context for BeOne\'s dual-listed stock positioning.' },
+        { title:'Pharma R&D Spend Falls 3.6% at Top 16 Companies in 2025; GSK an Exception with +18%', src:'BioSpace', sent:'neut', date:'2026/03/25', sum:'Top 16 pharma companies cut R&D to $159B in 2025. BeOne\'s own record $5.34B revenue and first-ever profitability contrast positively against industry-wide R&D retrenchment trend.' }
+      ]},
+      { title:'China Biotech Industry News', color:'#5E7898', articles:[
+        { title:'Kelun-Biotech IND Approval for SKB103 Novel TAA-PD-L1 Bispecific ADC', src:'Kelun-Biotech PR', sent:'pos', date:'2026/03/24', sum:'Kelun-Biotech received IND approval for SKB103, a novel bispecific ADC combining Tumor-Associated Antigen targeting with PD-L1 IO, approved by China\'s CDE for advanced solid tumors. Represents maturing Chinese ADC ecosystem where BeOne operates as a key deal partner.' },
+        { title:'Akeso Advances "IO 2.0 + ADC 2.0" Strategy with Phase II ADCs Combined with Ivonescimab', src:'Akeso PR', sent:'neut', date:'2026/03/24', sum:'Akeso received NMPA clearance for Phase II trials of AK146D1 (Trop2/Nectin4 bsADC) and AK138D1 (HER3 ADC) in combination with ivonescimab. Positions ivonescimab as a combination anchor — directly competing with tislelizumab\'s role in BeOne\'s ADC ecosystem.' }
+      ]},
+      { title:'Tweets of Interest', color:'#C88A1A', isTweet:true, articles:[
+        { title:'@OncLive: Expert Panel on CLL — Zanubrutinib and Venetoclax + Obinutuzumab Treatment Options', src:'Twitter/X', sent:'pos', date:'2026/03/25', sum:'OncLive promoted an on-demand expert panel on CLL treatment options including zanubrutinib and venetoclax + obinutuzumab, generating 256 views. Focus on study design, clinical outcomes, and treatment strategies across continuous and fixed-duration approaches.' },
+        { title:'@Gobbb111: BeOne Stock Only Down 3.5% After Warning Letters — Historical Comparison', src:'Twitter/X', sent:'neut', date:'2026/03/25', sum:'A widely-shared tweet (1,083 views, 38 likes) placed BeOne\'s −3.5% drop in context against Lilly, Novo, and HIMS, all of which saw minimal or quickly-recovered declines after similar OPDP actions. Effectively reframed the Brukinsa DTC letter as a non-event for long-term investors.' }
+      ]}
+    ]
+  },
+  mar26: {
+    day:'Thursday', date:'March 26, 2026', total:32, pos:14, neg:3, neut:15,
+    summary:'Peak volume day (32 articles) driven by BeiGene\'s landmark 2025 financials: first-ever $287M profit, $5.34B total revenue (+40%), and Brukinsa at $3.93B (+48.6%). HIRA South Korea denial was the key negative. Wolfe/Goldman analyst attention reflects growing buy-side conviction.',
+    sections:[
+      { title:'New & Noteworthy', color:'#1C3858', articles:[
+        { title:'FDA Approves Corcept\'s Lifyorli™ (relacorilant) for Platinum-Resistant Ovarian Cancer', src:'Corcept Therapeutics PR', sent:'neut', date:'2026/03/25', sum:'FDA approved Lifyorli + nab-paclitaxel for platinum-resistant ovarian cancer — the first approved selective glucocorticoid receptor antagonist based on the ROSELLA trial. Contextually relevant for BeOne\'s gynecologic oncology pipeline and competitive monitoring.' }
+      ]},
+      { title:'BeOne Announcements & News', color:'#E04028', articles:[
+        { title:'Tislelizumab Recognized as Standard First-Line Treatment for Esophageal Squamous Cell Carcinoma', src:'Medscape', sent:'pos', date:'2026/03/25', sum:'Dr. Jaffer Ajani\'s Medscape clinical review positioned tislelizumab alongside nivolumab and pembrolizumab as SOC first-line for ESCC based on RATIONALE-306. Medscape reaches 3.5M+ HCPs globally — a KOL-authored review carries far greater prescribing influence than press releases.' },
+        { title:'BeOne Completes Phase 1 Study of Fixed-Dose Zanubrutinib + Sonrotoclax Combo Pill (BG-71332)', src:'TipRanks', sent:'pos', date:'2026/03/25', sum:'BeOne completed a Phase 1 bioavailability crossover study of BG-71332, a fixed-dose combination tablet of zanubrutinib + sonrotoclax. Positive results support potential regulatory filings for this potentially first-in-class oral hematology combination pill.' },
+        { title:'BeiGene 2025: Record $5.34B Revenue (+40%), First-Ever $287M Profit, Brukinsa $3.93B (+48.6%)', src:'Longbridge', sent:'pos', date:'2026/03/25', sum:'BeiGene\'s landmark 2025 financial results: first-ever annual profitability ($287M net), total revenue +40.2% to $5.34B, Brukinsa $3.93B globally (+48.6% YoY). Transforms BeOne\'s investment thesis from high-growth/pre-profitable to scaled, profitable oncology franchise.' },
+        { title:'HIRA Cancer Committee Denies Tevimbra Reimbursement Coverage in South Korea', src:'Archynewsy', sent:'neg', date:'2026/03/26', crisis:true, sum:'South Korea\'s 10th Cancer Disease Review Committee denied coverage for Tevimbra. Significant Asia-Pacific market access barrier — South Korea\'s HIRA decisions often influence broader APAC HTA assessments. Revised HEOR dossier and resubmission strategy recommended.' },
+        { title:'BeOne and Gilead Back China-Originated MAT2A Inhibitor SY-9453 from Shouyao Holdings', src:'Oncology Pipeline', sent:'pos', date:'2026/03/26', sum:'Shouyao Holdings\' SY-9453 received strategic endorsements from both BeOne and Gilead. Two leading oncology companies backing the same asset signals strong scientific conviction in the mechanism — positions BeOne as an active de-risker of Chinese-origin pipeline innovation.' },
+        { title:'MAIA Biotechnology Signs Tislelizumab Supply Deal with BeOne for Phase 3 NSCLC Trials', src:'ChemDiv', sent:'pos', date:'2026/03/25', sum:'MAIA secured multiple FDA designations and signed a tislelizumab supply deal with BeOne for THIO-104 (Phase 3 NSCLC) and THIO-101 combination trials. BeOne\'s tislelizumab embedded in multiple third-party Phase 3 programs — meaningful signal of clinical confidence.' },
+        { title:'InnoCare Q4 2025: Goldman Sachs Singles Out Zanubrutinib + Sonrotoclax as Competitive Benchmark', src:'Investing.com', sent:'neut', date:'2026/03/25', sum:'During InnoCare\'s earnings call, Goldman Sachs analyst Ziyi Chen challenged InnoCare to differentiate its BTK+BCL-2 combo against "early data coming from zanubrutinib plus sonrotoclax." Positions BeOne\'s combination as the de facto competitive benchmark before pivotal trial readout.' }
+      ]},
+      { title:'Key Competitor Announcements', color:'#0891B2', articles:[
+        { title:'Agilent FDA Approval for PD-L1 CDx in Esophageal Cancer — Strengthening Keytruda Ecosystem', src:'Agilent Technologies PR', sent:'neut', date:'2026/03/26', sum:'Agilent received FDA CDx approval for PD-L1 IHC 22C3 pharmDx for KEYTRUDA in esophageal/GEJ carcinoma. Growing Keytruda CDx ecosystem creates pressure for BeOne to develop or partner on equivalent companion diagnostic capabilities for tislelizumab.' },
+        { title:'Merck Acquires Terns Pharmaceuticals for $6.7B to Secure Post-Keytruda Oncology Pipeline', src:'Gene Online', sent:'neut', date:'2026/03/26', sum:'Merck\'s $6.7B acquisition of Terns signals aggressive capital deployment ahead of Keytruda\'s 2028 patent cliff. Will be a key shaping force in the PD-1/IO competitive landscape where BeOne\'s tislelizumab competes.' }
+      ]},
+      { title:'Industry & Policy News', color:'#6D40C4', articles:[
+        { title:'ICER Launches Scientific Advice Program — Early Value Assessment for Drug Development', src:'ICER PR', sent:'neut', date:'2026/03/25', sum:'ICER formally launched Scientific Advice to guide companies on evidence generation strategies for value assessment. Relevant for BeOne\'s HEOR and market access teams planning evidence packages where ICER assessments influence U.S. payer decisions.' },
+        { title:'Iran War Fuel Costs Threaten Europe\'s Pharmaceutical Distribution System — GIRP Warning', src:'Pink Sheet', sent:'neut', date:'2026/03/26', sum:'GIRP warned that fuel price increases from the Iran war will push European full-line wholesalers to "breaking point." BeOne\'s European distribution model and logistics planning should factor this emerging supply chain vulnerability.' }
+      ]},
+      { title:'Tweets of Interest', color:'#C88A1A', isTweet:true, articles:[
+        { title:'@Xpharma: Brukinsa is the 1st Chinese Drug to Defeat a Global Blockbuster in Head-to-Head Ph3', src:'Twitter/X', sent:'pos', date:'2026/03/26', sum:'Xpharma highlighted Brukinsa\'s three landmark achievements: first Chinese innovative drug to defeat a global blockbuster head-to-head, superior PFS, significantly lower atrial fibrillation rates, and broadest BTK class indications. Targeted squarely at Chinese pharma investor audience.' },
+        { title:'@TomHsiung: Real-World Zanubrutinib vs. Ibrutinib Safety in CLL — Italian CLL-ZANU2024 Cohort', src:'Twitter/X', sent:'pos', date:'2026/03/26', sum:'Tom Hsiung shared the CLL-ZANU2024 Italian real-world cohort showing zanubrutinib\'s differentiated safety profile vs. ibrutinib. 17 views. Real-world evidence reinforcing head-to-head trial data — particularly persuasive for HCPs uncertain about translating trial results.' }
+      ]}
+    ]
+  },
+  mar27: {
+    day:'Friday', date:'March 27, 2026', total:26, pos:13, neg:1, neut:12,
+    summary:'Closed on a strong note. The BTK degrader + sonrotoclax Phase 3 announcement was the New & Noteworthy lead. Wolfe Research Buy initiation and BeOne\'s Patient Advocacy AI Innovation Lab generated broad positive coverage. Akeso\'s confirmed ivonescimab superiority over tislelizumab in squamous NSCLC remained the primary competitive concern.',
+    sections:[
+      { title:'New & Noteworthy', color:'#1C3858', articles:[
+        { title:'BeOne Looks to BTK Degrader + Sonrotoclax Combination — Phase 3 Plans Revealed', src:'Oncology Pipeline', sent:'pos', date:'2026/03/26', sum:'BeOne is preparing Phase 3 trials of BTK degrader BGB-16673 + next-gen BCL2 inhibitor sonrotoclax in relapsed/refractory CLL, with Haematology CMO Amit Agarwal hinting at additional diseases. Positions BeOne as frontrunner in the BTK degrader space. Published by Oncology Pipeline — highest-credibility pipeline intelligence outlet.' }
+      ]},
+      { title:'BeOne Announcements & News', color:'#E04028', articles:[
+        { title:'Akeso 2025: Ivonescimab Superiority Over Tislelizumab Confirmed in HARMONi-6 (1L Squamous NSCLC)', src:'Akeso Press Release', sent:'neg', date:'2026/03/26', crisis:true, sum:'Akeso\'s 2025 annual results formally confirmed ivonescimab superiority over tislelizumab + chemotherapy in first-line squamous NSCLC (HARMONi-6) and dual PFS/OS positivity in EGFR-TKI resistant NSCLC (HARMONi-A). ~70,000 patients have now received ivonescimab. Week\'s most consequential competitive challenge — requires biomarker-differentiated response.' },
+        { title:'BeOne Launches Patient Advocacy AI Innovation Lab — "AI is Central to BeOne\'s Purpose"', src:'Future of Personal Health', sent:'pos', date:'2026/03/27', sum:'BeOne convened a first-of-its-kind Patient Advocacy AI Innovation Lab bringing blood cancer patients and caregivers together to guide AI tool development. Jen Branstetter: "AI is central to BeOne\'s purpose." Establishes BeOne as thought leader at the oncology-AI intersection — strong corporate reputation signal.' },
+        { title:'BeOne Cited as Rare China Biotech Global Success Benchmark in Scrip Intelligence', src:'Scrip Intelligence', sent:'pos', date:'2026/03/27', sum:'Scrip Intelligence\'s analysis of Chinese cross-border biotech cited BeOne as one of the rare genuine success cases of a Chinese biopharma company becoming a truly international entity. Scrip\'s premium subscriber base of pharma executives and analysts makes this a high-value endorsement of strategic credibility.' },
+        { title:'Wolfe Research Initiates Buy Rating on BeOne — Brukinsa Positioned for Sustained CLL Leadership', src:'TipRanks', sent:'pos', date:'2026/03/27', sum:'Analyst Kalpit Patel (Wolfe Research) initiated a Buy rating, highlighting Brukinsa\'s CLL/SLL leadership, broad pipeline depth, and BeOne as a profitable, scaled oncology franchise at compelling EV/sales multiples. Fresh sell-side initiation from a new firm carries significant institutional signal value.' },
+        { title:'Ascentage Pharma CEO Challenges Sonrotoclax Safety Profile in Earnings Call', src:'Seeking Alpha', sent:'neut', date:'2026/03/26', sum:'During Ascentage Q4 2025 earnings, CEO Dajun Yang claimed lisaftoclax shows lower SAE incidence and infection rates vs. venetoclax or sonrotoclax. Direct CEO-level competitive challenge made in a public earnings call — requires proactive data response from BeOne\'s medical affairs as sonrotoclax advances toward pivotal trials.' }
+      ]},
+      { title:'Industry & Policy News', color:'#6D40C4', articles:[
+        { title:'Georgetown Study: Early-Stage Drug Innovation Doubled, China Share Growing Substantially', src:'Georgetown University', sent:'neut', date:'2026/03/26', sum:'Georgetown researchers found global early-stage biopharma development nearly doubled over 2015–2025, shifting from U.S.-dominance to a dual U.S.-China hub. BeOne\'s positioning as a U.S.-China bridging company puts it at the centre of this structural shift.' },
+        { title:'Trump HHS Official Chris Klomp Calls Biotech Competition with China "A War"', src:'Endpoints News', sent:'neut', date:'2026/03/27', sum:'Senior HHS official Chris Klomp called competition with China\'s ascending biotech industry "a war" at CPAC. Calls for IP protection and innovation speed could create policy risks for Chinese-origin drugs and cross-border partnerships, though BeOne\'s deep U.S. commercial infrastructure provides some insulation.' },
+        { title:'Biopharma Industry Pushes Back on FDA\'s "America First" User Fee Proposals', src:'Endpoints News', sent:'neut', date:'2026/03/27', sum:'Industry representatives opposed FDA PDUFA proposals limiting the small business waiver to U.S.-only applicants. BeOne\'s globally distributed clinical trial operations make it particularly sensitive to Phase 1 geographic requirements.' },
+        { title:'U.S. Voters Strongly Support PBM Reform While Favouring Domestic Biotech Leadership', src:'Bio.News', sent:'pos', date:'2026/03/26', sum:'BIO-commissioned survey: 8-in-10 support drug cost reduction via PBM reform; nearly 9-in-10 want strong domestic biotech. Positive policy backdrop for BeOne\'s U.S. commercial expansion.' }
+      ]},
+      { title:'China Biotech Industry News', color:'#5E7898', articles:[
+        { title:'CStone Updates Phase I/II for CS2009 (PD-1/VEGF/CTLA-4 Trispecific): 90% ORR in 1L NSCLC', src:'CStone PR', sent:'neut', date:'2026/03/26', sum:'CStone\'s CS2009 trispecific antibody showed 90% ORR and 100% DCR in first-line NSCLC (PD-L1 TPS ≥50%). If it progresses to Phase 3, could further challenge tislelizumab\'s NSCLC positioning in high-PD-L1 expressing patients.' }
+      ]},
+      { title:'Tweets of Interest', color:'#C88A1A', isTweet:true, articles:[
+        { title:'@CancerTherAdvsr: Tislelizumab + Chemo Sustained Survival Benefits in Nasopharyngeal Cancer (JAMA Oncology)', src:'Twitter/X', sent:'pos', date:'2026/03/27', sum:'CancerTherapyAdvisor amplified the nasopharyngeal cancer JAMA Oncology publication showing tislelizumab + chemo "sustained and clinically meaningful survival benefits with manageable toxicity." 41 views — targeted HCP/oncology audience.' },
+        { title:'@MarcJacksonLA: BeOne BTK Degrader + Sonrotoclax Combo Generating Investor Attention', src:'Twitter/X', sent:'pos', date:'2026/03/27', sum:'Stock-focused tweet about BeOne\'s BTK degrader + sonrotoclax combination plans generated 131 views, tagging $ONC, $LLY, $PFE, $NVS, $NRIX. Broad financial ticker tagging suggests the combination strategy is generating cross-sector investor interest beyond core oncology followers.' }
+      ]}
+    ]
+  }
+};
+
+// ══════════════════════
+// DAILY MONITORING RENDER
+// ══════════════════════
+let currentDay = 'mar23';
+
+function switchDay(dayId) {
+  currentDay = dayId;
+  document.querySelectorAll('[id^="daytab-"]').forEach(t => t.classList.remove('active'));
+  document.getElementById('daytab-' + dayId).classList.add('active');
+  renderDayReport(dayId);
+  const dc = document.getElementById('daily-content');
+  if (dc) dc.scrollTop = 0;
+}
+
+function sentColor(s) {
+  if (s === 'pos') return '#059669';
+  if (s === 'neg') return '#CC0000';
+  return '#d97706';
+}
+function sentLabel(s) {
+  if (s === 'pos') return '🟢 Positive';
+  if (s === 'neg') return '🔴 Negative';
+  return '🟡 Neutral';
+}
+
+function renderDayReport(dayId) {
+  const r = REPORTS[dayId];
+  if (!r) return;
+  const el = document.getElementById('daily-content');
+  const posPct = Math.round(r.pos/r.total*100);
+  const negPct = Math.round(r.neg/r.total*100);
+  const neutPct = 100 - posPct - negPct;
+
+  let html = `
+    <div style="padding:28px 32px">
+      <!-- Day Header -->
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid var(--border);gap:16px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-mid);margin-bottom:4px">${r.day}</div>
+          <div style="font-size:22px;font-weight:800;color:var(--text)">${r.date}</div>
+          <div style="font-size:13px;color:var(--text-mid);margin-top:4px;line-height:1.5;max-width:600px">${r.summary}</div>
+        </div>
+        <div style="display:flex;gap:10px;flex-shrink:0">
+          <div style="text-align:center;background:#f0fdf4;border:1px solid #a7f3d0;border-radius:10px;padding:10px 16px">
+            <div style="font-size:22px;font-weight:800;color:#059669">${r.pos}</div>
+            <div style="font-size:10px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:.5px">Positive</div>
+          </div>
+          <div style="text-align:center;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px 16px">
+            <div style="font-size:22px;font-weight:800;color:#d97706">${r.neut}</div>
+            <div style="font-size:10px;font-weight:700;color:#d97706;text-transform:uppercase;letter-spacing:.5px">Neutral</div>
+          </div>
+          <div style="text-align:center;background:#fff5f5;border:1px solid #fca5a5;border-radius:10px;padding:10px 16px">
+            <div style="font-size:22px;font-weight:800;color:#CC0000">${r.neg}</div>
+            <div style="font-size:10px;font-weight:700;color:#CC0000;text-transform:uppercase;letter-spacing:.5px">Negative</div>
+          </div>
+          <div style="text-align:center;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 16px">
+            <div style="font-size:22px;font-weight:800;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">${r.total}</div>
+            <div style="font-size:10px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.5px">Total</div>
+          </div>
+        </div>
+      </div>
+      <!-- Sentiment Bar + Controls -->
+      <div style="margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;margin-bottom:6px">
+            <div style="width:${posPct}%;background:#059669"></div>
+            <div style="width:${neutPct}%;background:#d97706"></div>
+            <div style="width:${negPct}%;background:#CC0000"></div>
+          </div>
+          <div style="display:flex;gap:14px">
+            <span style="font-size:11px;color:#059669;font-weight:600">🟢 ${posPct}% positive</span>
+            <span style="font-size:11px;color:#d97706;font-weight:600">🟡 ${neutPct}% neutral</span>
+            <span style="font-size:11px;color:#CC0000;font-weight:600">🔴 ${negPct}% negative</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0">
+          <button onclick="expandAllDay()" style="display:flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--text-mid);font-family:'Inter',sans-serif;transition:all .15s" onmouseover="this.style.background='#FDEAEA';this.style.color='#D32E27';this.style.borderColor='rgba(211,46,39,0.3)'" onmouseout="this.style.background='var(--card)';this.style.color='var(--text-mid)';this.style.borderColor='var(--border)'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            Expand All
+          </button>
+          <button onclick="collapseAllDay()" style="display:flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--text-mid);font-family:'Inter',sans-serif;transition:all .15s" onmouseover="this.style.background='#FDEAEA';this.style.color='#D32E27';this.style.borderColor='rgba(211,46,39,0.3)'" onmouseout="this.style.background='var(--card)';this.style.color='var(--text-mid)';this.style.borderColor='var(--border)'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+            Collapse All
+          </button>
+        </div>
+      </div>`;
+
+  // Sections
+  r.sections.forEach(sec => {
+    const secSlug = getSecSlug(sec.title);
+    html += `
+      <div id="dsec-${secSlug}" style="background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:14px;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;cursor:pointer;border-bottom:1px solid var(--border);background:#fafafa" onclick="toggleDaySec(this)">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:4px;height:24px;border-radius:2px;background:${sec.color};flex-shrink:0"></div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--text)">${sec.isTweet ? '🐦 ' : ''}${sec.title}</div>
+              <div style="font-size:11px;color:var(--text-mid)">${sec.articles.length} article${sec.articles.length > 1 ? 's' : ''}</div>
+            </div>
+          </div>
+          <span style="font-size:12px;color:var(--text-mid);font-weight:700;user-select:none">▼</span>
+        </div>
+        <div class="day-sec-body">`;
+
+    sec.articles.forEach(art => {
+      html += `
+          <div style="border-bottom:1px solid var(--border);cursor:pointer" onclick="toggleDayArt(this)">
+            <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 18px">
+              <div style="width:7px;height:7px;border-radius:50%;background:${sentColor(art.sent)};flex-shrink:0;margin-top:5px"></div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13px;font-weight:600;color:var(--text);line-height:1.4;margin-bottom:4px">${art.title}${art.crisis ? ' <span style="background:#CC0000;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:4px;vertical-align:middle">⚠ CRISIS</span>' : ''}</div>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                  <span style="background:var(--bg);border:1px solid var(--border);padding:2px 7px;border-radius:5px;font-size:10.5px;font-weight:600;color:var(--text-mid)">${art.src}</span>
+                  <span style="font-size:10px;color:var(--text-light)">${art.date}</span>
+                  <span style="font-size:10px;font-weight:700;color:${sentColor(art.sent)}">${sentLabel(art.sent)}</span>
+                  ${art.tw ? '<span style="background:#E8F4FD;color:#1D9BF0;font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:4px">🐦 Social</span>' : ''}
+                </div>
+              </div>
+              <span class="art-expand-arr" style="font-size:11px;color:var(--text-mid);flex-shrink:0;transition:transform .18s">▼</span>
+            </div>
+            <div class="day-art-body" style="display:none;padding:0 18px 14px 35px">
+              <div style="font-size:12.5px;line-height:1.72;color:var(--text-mid);background:var(--bg);padding:12px 14px;border-radius:8px;border-left:3px solid ${sentColor(art.sent)}">${art.sum}</div>
+            </div>
+          </div>`;
+    });
+
+    html += `</div></div>`;
+  });
+
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+function toggleDaySec(hdr) {
+  const body = hdr.nextElementSibling;
+  const arrow = hdr.querySelector('span:last-child');
+  const isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? 'block' : 'none';
+  if (arrow) arrow.textContent = isHidden ? '▲' : '▼';
+}
+
+function toggleDayArt(row) {
+  const body = row.querySelector('.day-art-body');
+  const arrow = row.querySelector('.art-expand-arr');
+  if (!body) return;
+  const isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? 'block' : 'none';
+  if (arrow) arrow.style.transform = isHidden ? 'rotate(180deg)' : '';
+}
+
+function expandAllDay() {
+  const dc = document.getElementById('daily-content');
+  if (!dc) return;
+  // Expand all section bodies
+  dc.querySelectorAll('.day-sec-body').forEach(body => {
+    body.style.display = 'block';
+    const hdr = body.previousElementSibling;
+    if (hdr) { const arrow = hdr.querySelector('span:last-child'); if (arrow) arrow.textContent = '▲'; }
+  });
+  // Expand all article bodies
+  dc.querySelectorAll('.day-art-body').forEach(body => {
+    body.style.display = 'block';
+    const row = body.parentElement;
+    if (row) { const arrow = row.querySelector('div > span:last-child'); if (arrow) arrow.style.transform = 'rotate(180deg)'; }
+  });
+}
+
+function collapseAllDay() {
+  const dc = document.getElementById('daily-content');
+  if (!dc) return;
+  // Collapse all section bodies
+  dc.querySelectorAll('.day-sec-body').forEach(body => {
+    body.style.display = 'none';
+    const hdr = body.previousElementSibling;
+    if (hdr) { const arrow = hdr.querySelector('span:last-child'); if (arrow) arrow.textContent = '▼'; }
+  });
+  // Collapse all article bodies
+  dc.querySelectorAll('.day-art-body').forEach(body => {
+    body.style.display = 'none';
+    const row = body.parentElement;
+    if (row) { const arrow = row.querySelector('div > span:last-child'); if (arrow) arrow.style.transform = ''; }
+  });
+}
+
+
+// ═══════════════════════════════════════════════════════
+// SVG LINE CHART ENGINE
+// ═══════════════════════════════════════════════════════
+function makeSVGLine(datasets, opts) {
+  opts = opts || {};
+  const w = opts.w || 460, h = opts.h || 115;
+  const pL = opts.pL || 28, pR = opts.pR || 12, pT = opts.pT || 22, pB = opts.pB || 28;
+  const labels = opts.labels || ['Mon 23','Tue 24','Wed 25','Thu 26','Fri 27'];
+  const cW = w - pL - pR, cH = h - pT - pB;
+  const n = labels.length;
+  const xStep = cW / (n - 1);
+  const allVals = datasets.reduce(function(a,d){ return a.concat(d.data); }, []);
+  const rawMin = Math.min.apply(null, allVals);
+  const rawMax = Math.max.apply(null, allVals);
+  const pad = Math.max((rawMax - rawMin) * 0.18, 2);
+  const yMin = rawMin - pad, yMax = rawMax + pad;
+  const xP = function(i) { return pL + i * xStep; };
+  const yP = function(v) { return pT + cH - ((v - yMin) / (yMax - yMin)) * cH; };
+
+  let svg = '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%;height:' + h + 'px;display:block;overflow:visible" xmlns="http://www.w3.org/2000/svg"><defs>';
+  datasets.forEach(function(ds, di) {
+    svg += '<linearGradient id="svgFill' + di + 'x" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0%" stop-color="' + ds.color + '" stop-opacity="0.18"/>' +
+      '<stop offset="100%" stop-color="' + ds.color + '" stop-opacity="0"/></linearGradient>';
+  });
+  svg += '</defs>';
+  // Grid lines
+  [0, 0.25, 0.5, 0.75, 1].forEach(function(t) {
+    svg += '<line x1="' + pL + '" y1="' + (pT + cH * t).toFixed(1) + '" x2="' + (w - pR) + '" y2="' + (pT + cH * t).toFixed(1) + '" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,3"/>';
+  });
+  datasets.forEach(function(ds, di) {
+    const pts = ds.data.map(function(v, i) { return [xP(i), yP(v)]; });
+    // Smooth cubic bezier path
+    let path = 'M ' + pts[0][0].toFixed(1) + ' ' + pts[0][1].toFixed(1);
+    for (let i = 1; i < pts.length; i++) {
+      const x0 = pts[i-1][0], y0 = pts[i-1][1], x1 = pts[i][0], y1 = pts[i][1];
+      const cx = ((x0 + x1) / 2).toFixed(1);
+      path += ' C ' + cx + ' ' + y0.toFixed(1) + ' ' + cx + ' ' + y1.toFixed(1) + ' ' + x1.toFixed(1) + ' ' + y1.toFixed(1);
+    }
+    // Gradient fill
+    const fillPath = path + ' L ' + pts[pts.length-1][0].toFixed(1) + ' ' + (pT + cH) + ' L ' + pts[0][0].toFixed(1) + ' ' + (pT + cH) + ' Z';
+    svg += '<path d="' + fillPath + '" fill="url(#svgFill' + di + 'x)"/>';
+    // Line
+    const sw = ds.sw || 2.5;
+    svg += '<path d="' + path + '" fill="none" stroke="' + ds.color + '" stroke-width="' + sw + '" stroke-linecap="round" stroke-linejoin="round"/>';
+    // Points + labels
+    pts.forEach(function(pt, i) {
+      svg += '<circle cx="' + pt[0].toFixed(1) + '" cy="' + pt[1].toFixed(1) + '" r="5" fill="white" stroke="' + ds.color + '" stroke-width="2.5"/>';
+      if (opts.showValues !== false) {
+        svg += '<text x="' + pt[0].toFixed(1) + '" y="' + (pt[1] - 10).toFixed(1) + '" text-anchor="middle" font-size="' + (opts.valueFontSize || 10) + '" font-weight="700" fill="' + ds.color + '" font-family="Inter,sans-serif">' + ds.data[i] + '</text>';
+      }
+    });
+  });
+  // X labels
+  labels.forEach(function(lbl, i) {
+    svg += '<text x="' + xP(i).toFixed(1) + '" y="' + (h - 4) + '" text-anchor="middle" font-size="10" fill="#6b7280" font-family="Inter,sans-serif">' + lbl + '</text>';
+  });
+  svg += '</svg>';
+  return svg;
+}
+
+// Volume trendline
+function renderVolumeTrendline() {
+  const el = document.getElementById('vol-timeline');
+  if (!el) return;
+  el.innerHTML = makeSVGLine([{ data: [28,30,27,32,26], color: '#D32E27', sw: 3 }], {
+    w: 460, h: 115, pL: 28, pR: 12, pT: 22, pB: 28,
+    labels: ['Mon 23','Tue 24','Wed 25','Thu 26','Fri 27']
+  });
+}
+
+// Sentiment trendline (3 lines)
+function renderSentimentTrendline() {
+  const el = document.getElementById('sent-trendline');
+  if (!el) return;
+  el.innerHTML = makeSVGLine([
+    { data: [8,12,9,14,13], color: '#059669', sw: 2.5 },
+    { data: [17,15,16,15,12], color: '#d97706', sw: 2 },
+    { data: [3,3,2,3,1], color: '#CC0000', sw: 2 }
+  ], {
+    w: 460, h: 115, pL: 28, pR: 12, pT: 22, pB: 28,
+    labels: ['Mon 23','Tue 24','Wed 25','Thu 26','Fri 27'],
+    valueFontSize: 9
+  });
+}
+
+// Exec summary save
+function saveExecSummary() {
+  const btn = document.getElementById('exec-save-btn');
+  if (!btn) return;
+  const orig = btn.innerHTML;
+  btn.innerHTML = '✓ Saved!';
+  btn.style.background = '#059669';
+  btn.style.color = '#fff';
+  setTimeout(function() { btn.innerHTML = orig; btn.style.background = '#fff'; btn.style.color = '#D32E27'; }, 2200);
+}
+
+// Monitoring sidebar: toggle day dropdown
+function toggleDayDropdown() {
+  const dd = document.getElementById('day-dropdown');
+  const arrow = document.getElementById('day-dd-arrow');
+  if (!dd) return;
+  const open = dd.style.display !== 'none';
+  dd.style.display = open ? 'none' : 'block';
+  if (arrow) arrow.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+// Select a day from dropdown
+function selectDay(dayId, label, sub) {
+  const lbl = document.getElementById('selected-day-text');
+  const slbl = document.getElementById('selected-day-sub');
+  if (lbl) lbl.textContent = label;
+  if (slbl) slbl.textContent = sub;
+  // Close dropdown
+  const dd = document.getElementById('day-dropdown');
+  if (dd) dd.style.display = 'none';
+  const arrow = document.getElementById('day-dd-arrow');
+  if (arrow) arrow.style.transform = '';
+  // Update active in dropdown
+  document.querySelectorAll('[id^="daytab-"]').forEach(function(t) { t.classList.remove('active'); });
+  const tab = document.getElementById('daytab-' + dayId);
+  if (tab) tab.classList.add('active');
+  switchDay(dayId);
+}
+
+// Section slug map
+const SECTION_SLUG_MAP = {
+  'New & Noteworthy': 'new-noteworthy',
+  'BeOne Announcements & News': 'beone-announcements',
+  'Industry & Policy News': 'industry-policy',
+  'Key Competitor Announcements': 'key-competitor',
+  'Solid Tumor Industry News': 'solid-tumor',
+  'Hematology': 'hematology',
+  'General Oncology': 'general-oncology',
+  'China Biotech Industry News': 'china-biotech',
+  'Tweets of Interest': 'tweets'
+};
+
+function getSecSlug(title) {
+  return SECTION_SLUG_MAP[title] || title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+}
+
+// Jump to section in daily content
+function jumpToSection(slug) {
+  const dc = document.getElementById('daily-content');
+  const el = document.getElementById('dsec-' + slug);
+  if (el && dc) {
+    dc.scrollTo({ top: el.offsetTop - 10, behavior: 'smooth' });
+    // Expand section if collapsed
+    const secBody = el.querySelector('.day-sec-body');
+    if (secBody && secBody.style.display === 'none') {
+      secBody.style.display = 'block';
+      const hdr = secBody.previousElementSibling;
+      if (hdr) { const arr = hdr.querySelector('span:last-child'); if(arr) arr.textContent = '▲'; }
+    }
+  }
+}
+
+// Init exec editable
+function initExecEditable() {
+  document.querySelectorAll('#sec-exec .ins-item p').forEach(function(p) {
+    p.setAttribute('contenteditable', 'true');
+    p.setAttribute('spellcheck', 'false');
+    p.style.outline = 'none';
+    p.style.borderRadius = '4px';
+    p.style.padding = '2px 4px';
+    p.style.margin = '-2px -4px';
+    p.style.transition = 'background .2s';
+    p.addEventListener('focus', function() { p.style.background = 'rgba(211,46,39,.05)'; });
+    p.addEventListener('blur', function() { p.style.background = ''; });
+  });
+}
+
+// INIT
+window.addEventListener('load', () => {
+  // Set overview as the active section on load
+  document.getElementById('sec-overview').classList.add('active');
+  renderVolumeTrendline();
+  renderSentimentTrendline();
+  renderSectionBars();
+  renderThemeBars();
+  renderDailySentBars();
+  // Pre-render Monday for daily tab
+  renderDayReport('mar23');
+  // Init exec editable
+  initExecEditable();
+});
+</script>
+</body>
+</html>

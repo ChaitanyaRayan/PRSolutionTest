@@ -49,7 +49,7 @@
   font-family: var(--mi-font-b);
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
-  overflow: hidden;
+  /* No overflow:hidden here — children manage their own scroll */
 }
 
 .mi-main {
@@ -58,6 +58,8 @@
   overflow-x: hidden;
   scrollbar-width: thin;
   scrollbar-color: var(--mi-border-md) transparent;
+  /* min-height:0 is critical for flex children to scroll correctly */
+  min-height: 0;
 }
 
 /* ── Stepper nav ─────────────────────────────────────────────────────────── */
@@ -1114,12 +1116,24 @@
 .eng-shell {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 56px); /* subtract stepper */
-  overflow: hidden;
+  /* Fill mi-main completely — height is inherited from the flex parent */
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;           /* shell clips; .eng-body scrolls */
   font-family: var(--eng-font-b, 'DM Sans', sans-serif);
   color: var(--eng-text, #111827);
 }
-.eng-theme-root { height: 100%; }
+.eng-theme-root { height: 100%; display: flex; flex-direction: column; }
+
+/* Scrollable body — everything below the sticky header */
+.eng-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,0.12) transparent;
+}
 
 /* ── Header bar ──────────────────────────────────────────────────────────── */
 .eng-header {
@@ -1674,9 +1688,15 @@
    Phase 2 — Multi-Dashboard, Template Gallery, Hero, Storyboard, Homepage
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Fullscreen dashboard mode ─────────────────────────────────────────── */
-.mi-app--fullscreen { overflow: hidden; }
-.mi-main--fullscreen { overflow: hidden; height: 100vh; }
+/* ── Fullscreen dashboard mode — kept for reference, not applied ────────── */
+/* Scroll is handled by .eng-body inside DashboardEngine + .mi-main */
+/* .mi-app--fullscreen { overflow: hidden; }  <-- removed: was blocking scroll */
+/* .mi-main--fullscreen { overflow: hidden; } <-- removed: was blocking scroll */
+
+/* Ensure .mi-main children that use flex fill height correctly */
+.mi-main > * { min-height: 0; }
+/* DashboardEngine needs full height so eng-body can flex-fill */
+.mi-main > div { height: 100%; }
 
 /* ── Stage2 multi-select additions ──────────────────────────────────────── */
 .mi-field-row {
@@ -2517,335 +2537,3 @@
   .dash-home-grid { grid-template-columns: 1fr; }
   .mi-tpl-grid { grid-template-columns: 1fr; }
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   Workflows Hub — /workflows listing & detail pages
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-/* ── Page shell ──────────────────────────────────────────────────────────── */
-.wf-page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 32px 80px;
-  font-family: var(--mi-font-b);
-}
-
-/* ── Page header ─────────────────────────────────────────────────────────── */
-.wf-page-header {
-  padding: 40px 0 24px;
-  border-bottom: 1px solid var(--mi-border);
-  margin-bottom: 24px;
-}
-.wf-page-header-content {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-}
-.wf-page-title {
-  font-family: var(--mi-font-h);
-  font-size: clamp(26px, 4vw, 36px);
-  font-weight: 400;
-  color: var(--mi-text);
-  margin: 0 0 6px;
-  letter-spacing: -0.01em;
-}
-.wf-page-subtitle {
-  font-size: 13px;
-  color: var(--mi-text-3);
-  margin: 0;
-}
-
-/* ── Toolbar ─────────────────────────────────────────────────────────────── */
-.wf-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 28px;
-  flex-wrap: wrap;
-}
-.wf-search-wrap {
-  position: relative;
-  flex: 1;
-  min-width: 200px;
-  max-width: 380px;
-}
-.wf-search-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--mi-text-3);
-  pointer-events: none;
-}
-.wf-search-input {
-  width: 100%;
-  padding: 9px 14px 9px 36px;
-  border: 1px solid var(--mi-border-md);
-  border-radius: var(--mi-radius);
-  background: var(--mi-surface);
-  font-family: var(--mi-font-b);
-  font-size: 13.5px;
-  color: var(--mi-text);
-  outline: none;
-  transition: border-color var(--mi-transition);
-  box-sizing: border-box;
-}
-.wf-search-input:focus { border-color: var(--mi-primary); }
-.wf-search-input::placeholder { color: var(--mi-text-3); }
-.wf-filters {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.wf-filter-select {
-  padding: 8px 12px;
-  border: 1px solid var(--mi-border-md);
-  border-radius: var(--mi-radius);
-  background: var(--mi-surface);
-  font-family: var(--mi-font-b);
-  font-size: 13px;
-  color: var(--mi-text-2);
-  cursor: pointer;
-  outline: none;
-  transition: border-color var(--mi-transition);
-}
-.wf-filter-select:focus { border-color: var(--mi-primary); color: var(--mi-text); }
-.wf-clear-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 8px 12px;
-  background: none;
-  border: 1px solid var(--mi-border-md);
-  border-radius: var(--mi-radius);
-  font-size: 12.5px;
-  color: var(--mi-text-2);
-  cursor: pointer;
-  transition: background var(--mi-transition);
-}
-.wf-clear-btn:hover { background: var(--mi-surface-2); color: var(--mi-text); }
-
-/* ── Error banner ────────────────────────────────────────────────────────── */
-.wf-error-banner {
-  padding: 14px 18px;
-  background: var(--mi-negative-bg);
-  border: 1px solid rgba(220,38,38,0.2);
-  border-radius: var(--mi-radius);
-  color: var(--mi-negative);
-  font-size: 13.5px;
-  margin-bottom: 24px;
-}
-
-/* ── Loading skeleton ────────────────────────────────────────────────────── */
-.wf-loading {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-}
-.wf-card--skeleton { pointer-events: none; }
-.wf-sk {
-  background: linear-gradient(90deg, var(--mi-surface-2) 25%, var(--mi-surface-3) 50%, var(--mi-surface-2) 75%);
-  background-size: 400% 100%;
-  animation: wf-shimmer 1.4s ease infinite;
-  border-radius: 6px;
-}
-.wf-sk--title  { height: 20px; width: 70%;  margin-bottom: 10px; }
-.wf-sk--line   { height: 13px; width: 90%;  margin-bottom: 8px; }
-.wf-sk--short  { width: 55%; }
-.wf-sk--pills  { display: flex; gap: 6px; margin-top: 12px; }
-.wf-sk--pill   { height: 22px; width: 80px; border-radius: 20px; }
-@keyframes wf-shimmer {
-  0%   { background-position: 100% 0; }
-  100% { background-position: -100% 0; }
-}
-
-/* ── Empty state ─────────────────────────────────────────────────────────── */
-.wf-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  padding: 80px 24px;
-  text-align: center;
-}
-.wf-empty-msg {
-  font-size: 14.5px;
-  color: var(--mi-text-2);
-  margin: 0;
-}
-
-/* ── Workflow card grid ───────────────────────────────────────────────────── */
-.wf-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-}
-@media (max-width: 960px) {
-  .wf-grid    { grid-template-columns: repeat(2, 1fr); }
-  .wf-loading { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 600px) {
-  .wf-grid    { grid-template-columns: 1fr; }
-  .wf-loading { grid-template-columns: 1fr; }
-  .wf-page    { padding: 0 16px 60px; }
-  .wf-page-header { padding: 24px 0 16px; }
-}
-
-/* ── Workflow card ───────────────────────────────────────────────────────── */
-.wf-card {
-  background: var(--mi-surface);
-  border: 1px solid var(--mi-border);
-  border-radius: var(--mi-radius-lg);
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  box-shadow: var(--mi-shadow);
-  cursor: pointer;
-  transition: box-shadow var(--mi-transition), border-color var(--mi-transition);
-}
-.wf-card:hover { box-shadow: var(--mi-shadow-lg); border-color: var(--mi-border-md); }
-
-.wf-card-header { display: flex; flex-direction: column; gap: 6px; }
-.wf-card-title-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-}
-.wf-card-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--mi-text);
-  margin: 0;
-  line-height: 1.3;
-}
-.wf-card-status {
-  flex-shrink: 0;
-  font-size: 10.5px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  padding: 2px 8px;
-  border-radius: 20px;
-  border: 1px solid;
-  white-space: nowrap;
-}
-.wf-card-desc {
-  font-size: 12.5px;
-  color: var(--mi-text-2);
-  line-height: 1.5;
-  margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* Meta row */
-.wf-card-meta {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  padding: 12px;
-  background: var(--mi-surface-2);
-  border-radius: var(--mi-radius);
-}
-.wf-card-meta-item { display: flex; flex-direction: column; gap: 3px; }
-.wf-card-meta-label {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--mi-text-3);
-  font-family: var(--mi-font-mono);
-}
-.wf-card-meta-val {
-  font-size: 12.5px;
-  color: var(--mi-text);
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Dashboard pills */
-.wf-card-dashboards {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.wf-card-dash-pill {
-  font-size: 11px;
-  font-weight: 500;
-  padding: 3px 10px;
-  border-radius: 20px;
-  border: 1px solid;
-  white-space: nowrap;
-}
-
-/* Footer */
-.wf-card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: auto;
-  padding-top: 4px;
-  border-top: 1px solid var(--mi-border);
-}
-.wf-card-dates {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.wf-card-date {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: var(--mi-text-3);
-}
-.wf-card-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 7px 14px;
-  background: var(--mi-primary);
-  color: #fff;
-  border: none;
-  border-radius: 20px;
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity var(--mi-transition), transform var(--mi-transition);
-}
-.wf-card-btn:hover { opacity: 0.88; transform: translateX(2px); }
-
-/* ── Workflow detail loading/error ───────────────────────────────────────── */
-.wf-detail-center {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 60vh;
-  gap: 16px;
-  text-align: center;
-}
-
-/* ── Back button ─────────────────────────────────────────────────────────── */
-.wf-back-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--mi-text-2);
-  font-size: 13px;
-  font-family: var(--mi-font-b);
-  padding: 0;
-  transition: color var(--mi-transition);
-}
-.wf-back-btn:hover { color: var(--mi-text); }

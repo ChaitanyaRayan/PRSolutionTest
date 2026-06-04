@@ -92,6 +92,13 @@ export const chartsApi = {
     req(`/charts?workflow_id=${workflowId}&lens_id=${lensId}`),
 };
 
+// ── Dropdowns — lens & LLM reference data ─────────────────────────────────────
+// GET /dropdowns → { lens: [{id, label, description}], llm: [{id, label}] }
+
+export const dropdownsApi = {
+  get: () => req('/dropdowns'),
+};
+
 // ── AI (local Express server.js) ─────────────────────────────────────────────
 
 export const aiApi = {

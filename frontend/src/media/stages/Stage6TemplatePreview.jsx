@@ -9,42 +9,47 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Sparkles, BarChart2, FileText, Activity, Layers,
-  ChevronRight, AlertCircle, RefreshCw, Loader2
+  ChevronRight, RefreshCw, Loader2
 } from 'lucide-react';
 import { useMediaStore } from '../store/mediaStore';
+import { chartsApi } from '../api/client';
 
 export default function Stage6TemplatePreview() {
-  const navigate = useNavigate();
-  const store    = useMediaStore();
+  const navigate       = useNavigate();
+  const [qp]           = useSearchParams();
+  const store          = useMediaStore();
 
-  const template      = store.selectedTemplate;
-  const workflowId    = store.workflowId;
-  const lensId        = store.lensId;
-  const brandName     = store.brandName;
+  const template   = store.selectedTemplate;
+  // Support both store state and URL query params (coming from Stage4Review)
+  const workflowId = qp.get('workflow_id') ?? store.workflowId;
+  const lensId     = qp.get('lens')        ?? store.lensId;
+  const brandName  = store.brandName;
   const confirmedData = store.confirmedData ?? [];
 
-  const [apiContent,   setApiContent]   = useState(null);
-  const [contentLoading, setContentLoading] = useState(false);
-  const [contentError,   setContentError]   = useState(null);
-  const [generating,     setGenerating]     = useState(false);
+  const [apiContent,      setApiContent]      = useState(null);
+  const [contentLoading,  setContentLoading]  = useState(false);
+  const [contentError,    setContentError]    = useState(null);
+  const [generating,      setGenerating]      = useState(false);
 
-  // Fetch a preview snapshot of the processed data
-  useEffect(() => { if (workflowId) loadContent(); }, [workflowId, lensId]);
+  // Fetch real charts data from the backend
+  useEffect(() => { if (workflowId && lensId) loadContent(); }, [workflowId, lensId]);
 
   async function loadContent() {
     setContentLoading(true);
     setContentError(null);
     try {
-      const res = await fetch(`/api/media/charts?workflow_id=${workflowId}&lens=${lensId}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      setApiContent(json);
+      // Use the real chartsApi endpoint
+      const data = await chartsApi.get(workflowId, lensId);
+      setApiContent(data);
     } catch (err) {
-      // Graceful fallback — show confirmed articles if API fails
-      setApiContent({ fallback: true, articles: confirmedData.slice(0, 6) });
+      setContentError(err.message);
+      // Graceful fallback — show confirmed article titles
+      if (confirmedData.length > 0) {
+        setApiContent({ articles: confirmedData.slice(0, 6) });
+      }
     } finally {
       setContentLoading(false);
     }
@@ -154,50 +159,11 @@ export default function Stage6TemplatePreview() {
 
             {!contentLoading && (
               <>
-                {/* Sections overview */}
-                <ContentSection
-                  icon={<FileText size={14} />}
-                  title="Articles"
+                {/* Show actual keys from chartsApi response */}
+                <ChartApiSummary
+                  apiContent={apiContent}
+                  confirmedData={confirmedData}
                   color={template.primaryColor}
-                  items={
-                    (apiContent?.articles ?? confirmedData)
-                      .slice(0, 5)
-                      .map((a) => a.title ?? a.headline ?? 'Untitled article')
-                  }
-                  emptyMsg="Articles will appear after pipeline runs"
-                />
-
-                <ContentSection
-                  icon={<BarChart2 size={14} />}
-                  title="Narratives & Themes"
-                  color={template.primaryColor}
-                  items={
-                    apiContent?.narratives?.slice(0, 4)
-                    ?? ['Brand perception shifts', 'Competitor activity', 'Emerging themes', 'Sentiment drivers']
-                  }
-                  emptyMsg="Narratives will be AI-generated"
-                />
-
-                <ContentSection
-                  icon={<Activity size={14} />}
-                  title="Sentiment & Metrics"
-                  color={template.primaryColor}
-                  items={
-                    apiContent?.metrics
-                    ?? ['Total Articles', 'Positive Sentiment', 'Audience Reach', 'Interactions KPI']
-                  }
-                  emptyMsg="Metrics from workflow data"
-                />
-
-                <ContentSection
-                  icon={<Sparkles size={14} />}
-                  title="AI Charts"
-                  color={template.primaryColor}
-                  items={
-                    apiContent?.chartTypes
-                    ?? ['Sentiment Trend', 'Top Themes', 'Media Type Breakdown', 'Audience KPI', 'Interactions']
-                  }
-                  emptyMsg="Charts generated from enriched data"
                 />
 
                 {/* Storyboard preview */}
@@ -255,7 +221,114 @@ export default function Stage6TemplatePreview() {
   );
 }
 
-// ── ContentSection ────────────────────────────────────────────────────────────
+// ── ChartApiSummary — shows real data from chartsApi ────────────────────────
+function ChartApiSummary({ apiContent, confirmedData, color }) {
+  if (!apiContent) {
+    // No data yet — show fallback from confirmed articles
+    const titles = confirmedData.slice(0, 5).map((a) => a.title ?? a.headline ?? 'Article');
+    return (
+      <div className="mi-tpl-content-section">
+        <h4 className="mi-tpl-preview-section-title" style={{ color }}>
+          <FileText size={14} /> Articles (Review Stage)
+        </h4>
+        {titles.length > 0 ? (
+          <ul className="mi-tpl-content-list">
+            {titles.map((t, i) => (
+              <li key={i} className="mi-tpl-content-item">
+                <span className="mi-tpl-item-dot" style={{ background: color }} />
+                <span>{t}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mi-tpl-content-empty">No article data available</p>
+        )}
+      </div>
+    );
+  }
+
+  // Normalise the chartsApi response into sections
+  const sections = buildPreviewSections(apiContent);
+
+  return (
+    <>
+      {sections.map((section, si) => (
+        <div key={si} className="mi-tpl-content-section">
+          <h4 className="mi-tpl-preview-section-title" style={{ color }}>
+            {section.icon}
+            {section.title}
+            <span className="mi-tpl-content-count">{section.items.length} items</span>
+          </h4>
+          <ul className="mi-tpl-content-list">
+            {section.items.slice(0, 5).map((item, i) => (
+              <li key={i} className="mi-tpl-content-item">
+                <span className="mi-tpl-item-dot" style={{ background: color }} />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </>
+  );
+}
+
+/** Turn raw chartsApi response into preview sections */
+function buildPreviewSections(raw) {
+  const sections = [];
+  if (!raw) return sections;
+
+  const fmt = (k) => k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+  // Handle array of chart objects
+  const chartArray = Array.isArray(raw) ? raw : (Array.isArray(raw.charts) ? raw.charts : null);
+  if (chartArray) {
+    chartArray.forEach((chart) => {
+      const data = chart.data;
+      const items = [];
+      if (Array.isArray(data)) {
+        data.slice(0, 8).forEach((row) => {
+          if (typeof row === 'object') {
+            const name = row.name ?? row.label ?? row.category ?? '';
+            const val  = row.value ?? row.count ?? '';
+            items.push(val !== '' ? `${name}: ${val}` : name);
+          } else {
+            items.push(String(row));
+          }
+        });
+      } else if (typeof data === 'number' || typeof data === 'string') {
+        items.push(String(data));
+      }
+      sections.push({ title: chart.title ?? fmt(chart.label ?? ''), icon: <BarChart2 size={13} />, items });
+    });
+    return sections;
+  }
+
+  // Handle keyed map { sentiment_score: {...}, top_themes: {...} }
+  Object.entries(raw).forEach(([key, value]) => {
+    if (!value || typeof value !== 'object') return;
+    const data = value.data ?? value;
+    const items = [];
+    if (Array.isArray(data)) {
+      data.slice(0, 8).forEach((row) => {
+        if (typeof row === 'object') {
+          const name = row.name ?? row.label ?? '';
+          const val  = row.value ?? row.count ?? '';
+          items.push(val !== '' ? `${name}: ${val}` : name);
+        } else {
+          items.push(String(row));
+        }
+      });
+    } else if (typeof data === 'number') {
+      items.push(String(data));
+    }
+    sections.push({ title: value.title ?? fmt(key), icon: <BarChart2 size={13} />, items });
+  });
+
+  return sections;
+}
+
+// ── ContentSection (generic fallback) ────────────────────────────────────────
 function ContentSection({ icon, title, color, items, emptyMsg }) {
   const hasItems = items && items.length > 0;
   return (

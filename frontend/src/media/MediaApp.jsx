@@ -10,6 +10,7 @@ import Stage5TemplateSelect      from './stages/Stage5TemplateSelect';
 import Stage6TemplatePreview     from './stages/Stage6TemplatePreview';
 import Stage7Dashboard           from './stages/Stage7Dashboard';
 import { useMediaStore }         from './store/mediaStore';
+import { useDropdowns }          from './hooks/useDropdowns';
 import './media.css';
 
 // ── Route guards ──────────────────────────────────────────────────────────────
@@ -90,7 +91,12 @@ function MediaStepper() {
 // ── MediaApp ──────────────────────────────────────────────────────────────────
 export default function MediaApp() {
   const location = useLocation();
-  const isDashboard = location.pathname.startsWith('/media/dashboard');
+  // Scroll is handled inside DashboardEngine (.eng-body) and by .mi-main
+  // No fullscreen class needed at the app level — it was breaking scroll
+  const isDashboard = false;
+
+  // Pre-fetch lens & LLM reference data as soon as the app mounts
+  useDropdowns();
 
   return (
     <BrandThemeProvider>
