@@ -46,6 +46,8 @@ export default function Stage7Dashboard() {
 
   // A specific dashboard lens was clicked from the homepage
   if (dashId) {
+    const from   = searchParams.get('from');
+    const wfParam = searchParams.get('wf');
     return (
       <DashboardEngine
         workflowId={workflowId}
@@ -54,9 +56,14 @@ export default function Stage7Dashboard() {
         template={template}
         dashboardId={dashId}
         onBack={() => {
-          // Return to homepage if multi, else go back
-          if (isMulti) navigate(`/media/dashboard?workflow_id=${workflowId}&lens=${lensId}`);
-          else navigate(-1);
+          // If opened from the Workflows hub, go back to the workflow detail page
+          if (from === 'workflows' && wfParam) {
+            navigate(`/workflows/${wfParam}`);
+          } else if (isMulti) {
+            navigate(`/media/dashboard?workflow_id=${workflowId}&lens=${lensId}`);
+          } else {
+            navigate(-1);
+          }
         }}
       />
     );
