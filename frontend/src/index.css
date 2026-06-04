@@ -1,0 +1,93 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@300;400;500&display=swap');
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* ── Depth palette ────────────────────────────────────── */
+  --void:          #050810;
+  --depth-1:       #080d18;
+  --depth-2:       #0b1120;
+  --depth-3:       #0f1728;
+  --depth-4:       #141e30;
+  --depth-5:       #1a263c;
+
+  /* ── Amber accent (primary) ───────────────────────────── */
+  --amber:         #f0a500;
+  --amber-hi:      #ffc030;
+  --amber-lo:      rgba(240, 165, 0, 0.10);
+  --amber-glow:    rgba(240, 165, 0, 0.22);
+  --amber-trace:   rgba(240, 165, 0, 0.05);
+
+  /* ── Blue data accent (secondary) ────────────────────── */
+  --data:          #60a5fa;
+  --data-lo:       rgba(96, 165, 250, 0.10);
+
+  /* ── Wire / border tokens ─────────────────────────────── */
+  --wire-faint:    rgba(255, 255, 255, 0.03);
+  --wire:          rgba(255, 255, 255, 0.07);
+  --wire-bright:   rgba(255, 255, 255, 0.13);
+
+  /* ── Ink / text tokens ────────────────────────────────── */
+  --ink-0:         #eaf2ff;
+  --ink-1:         #a8bccc;
+  --ink-2:         #5a7080;
+  --ink-3:         #2a3a4e;
+
+  /* ── Semantic aliases (keep existing component vars working) ── */
+  --bg-primary:    var(--depth-1);
+  --bg-secondary:  var(--void);
+  --bg-panel:      var(--depth-2);
+  --bg-hover:      var(--depth-3);
+  --bg-active:     var(--depth-4);
+  --border:        var(--wire);
+  --border-light:  var(--wire-bright);
+  --text-primary:  var(--ink-0);
+  --text-secondary:var(--ink-1);
+  --text-muted:    var(--ink-2);
+  --accent:        var(--amber);
+  --accent-hover:  var(--amber-hi);
+  --accent-light:  var(--amber-lo);
+  --accent-glow:   var(--amber-glow);
+  --warm:          #f97316;
+  --magenta:       #e879f9;
+  --green:         #10b981;
+  --red:           #f43f5e;
+  --yellow:        var(--amber);
+  --radius:        6px;
+  --radius-lg:     10px;
+  --shadow:        0 2px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg:     0 10px 40px rgba(0, 0, 0, 0.7);
+
+  /* ── Fonts ────────────────────────────────────────────── */
+  --font-display:  'Syne', sans-serif;
+  --font-body:     'DM Sans', sans-serif;
+  --font-mono:     'JetBrains Mono', monospace;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--ink-0);
+  background: var(--void);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+button { font-family: inherit; cursor: pointer; }
+input, textarea { font-family: inherit; }
+a { color: var(--amber); text-decoration: none; }
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--depth-5); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-2); }
