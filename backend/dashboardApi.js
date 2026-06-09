@@ -2,27 +2,81 @@
  * dashboardApi.js — AI-driven dashboard generation & conversational modification.
  *
  * Endpoints:
- *   GET  /api/dashboard/:workflowId          — generate/retrieve dashboard config
- *   POST /api/dashboard/:workflowId/chat     — conversational modification
- *   GET  /api/dashboard/:workflowId/versions — version history
+ *   GET  /api/dashboard/:workflowId?lens_id=   — generate/retrieve dashboard config per lens
+ *   POST /api/dashboard/:workflowId/chat       — conversational modification
+ *   GET  /api/dashboard/:workflowId/versions   — version history per lens
  *   POST /api/dashboard/:workflowId/restore/:versionId — restore version
  */
 
 import { randomUUID } from 'crypto';
 
-// ── In-memory version store: workflowId → [{ versionId, createdAt, config, label }]
+// ── In-memory store: "{workflowId}:{lensId}" → [{ versionId, createdAt, config, label }]
 const dashboardStore = new Map();
 
-// ── Dashboard JSON schema description (injected into all AI prompts) ──────────
+// ── Lens-specific tab structures ──────────────────────────────────────────────
+const LENS_STORYBOARDS = {
+  // lens_id: 1 — Media Measurement
+  1: [
+    { id: 'overview',   title: 'Coverage Overview',     subtitle: 'Volume & source breakdown',  icon: '📰', layout: 'hero' },
+    { id: 'reach',      title: 'Reach & Impressions',   subtitle: 'Audience impact metrics',    icon: '👁️', layout: 'analytics' },
+    { id: 'sources',    title: 'Source Analysis',       subtitle: 'Publication & tier intel',   icon: '📡', layout: '3col' },
+    { id: 'trends',     title: 'Volume Trends',         subtitle: 'Time-series coverage',       icon: '📈', layout: '2col' },
+    { id: 'kpis',       title: 'Performance KPIs',      subtitle: 'Summary scorecard',          icon: '🎯', layout: 'executive' },
+  ],
+  // lens_id: 2 — Media Monitoring
+  2: [
+    { id: 'live',       title: 'Live Monitor',          subtitle: 'Real-time brand activity',   icon: '🔴', layout: 'hero' },
+    { id: 'sentiment',  title: 'Sentiment Pulse',       subtitle: 'Brand perception shifts',    icon: '💬', layout: 'analytics' },
+    { id: 'alerts',     title: 'Risk Alerts',           subtitle: 'Crisis & escalation signals',icon: '⚠️', layout: '2col' },
+    { id: 'channels',   title: 'Channel Breakdown',     subtitle: 'Media type distribution',    icon: '📱', layout: '3col' },
+    { id: 'narrative',  title: 'Narrative Tracker',     subtitle: 'Emerging story themes',      icon: '🔍', layout: 'storytelling' },
+  ],
+  // lens_id: 3 — Narrative Intelligence
+  3: [
+    { id: 'themes',     title: 'Theme Intelligence',    subtitle: 'Dominant narratives',        icon: '💡', layout: 'hero' },
+    { id: 'velocity',   title: 'Narrative Velocity',    subtitle: 'Theme growth & decay',       icon: '🚀', layout: 'analytics' },
+    { id: 'messaging',  title: 'Message Alignment',     subtitle: 'Brand vs media framing',     icon: '🎯', layout: '2col' },
+    { id: 'competitors',title: 'Competitive Narratives',subtitle: 'Rival brand story share',    icon: '⚔️', layout: '3col' },
+    { id: 'lifecycle',  title: 'Story Lifecycle',       subtitle: 'From emergence to fade',     icon: '🔄', layout: 'storytelling' },
+  ],
+  // lens_id: 4 — PR Impact
+  4: [
+    { id: 'impact',     title: 'PR Impact Score',       subtitle: 'Composite coverage quality', icon: '⚡', layout: 'hero' },
+    { id: 'emv',        title: 'Earned Media Value',    subtitle: 'ROI & value attribution',    icon: '💰', layout: 'analytics' },
+    { id: 'tier',       title: 'Tier Intelligence',     subtitle: 'Outlet quality & authority', icon: '🏆', layout: '3col' },
+    { id: 'spokespeople',title: 'Spokesperson Perf.',   subtitle: 'Quote & mention attribution',icon: '🎙️', layout: '2col' },
+    { id: 'campaigns',  title: 'Campaign Tracker',      subtitle: 'Initiative-level performance',icon: '📣', layout: 'storytelling' },
+  ],
+  // lens_id: 5 — Reputation Intelligence
+  5: [
+    { id: 'score',      title: 'Reputation Score',      subtitle: 'Composite brand health',     icon: '⭐', layout: 'hero' },
+    { id: 'drivers',    title: 'Reputation Drivers',    subtitle: 'What builds & erodes trust', icon: '🔬', layout: 'analytics' },
+    { id: 'benchmark',  title: 'Competitor Benchmark',  subtitle: 'Reputation vs sector peers', icon: '📊', layout: '3col' },
+    { id: 'trust',      title: 'Trust Dimensions',      subtitle: 'Quality, integrity, advocacy',icon: '🤝', layout: '2col' },
+    { id: 'timeline',   title: 'Reputation Timeline',   subtitle: 'Historic brand perception',  icon: '📅', layout: 'storytelling' },
+  ],
+};
+
+// Default storyboard when lens_id is unrecognised
+const DEFAULT_STORYBOARD = [
+  { id: 'executive',  title: 'Executive Summary',    subtitle: 'Key findings overview',      icon: '⚡', layout: 'hero' },
+  { id: 'coverage',   title: 'Media Coverage',       subtitle: 'Volume & reach',             icon: '📰', layout: '3col' },
+  { id: 'sentiment',  title: 'Sentiment Analysis',   subtitle: 'Brand perception',           icon: '💬', layout: 'analytics' },
+  { id: 'narratives', title: 'Narrative Intelligence',subtitle: 'Emerging themes',           icon: '🔍', layout: 'storytelling' },
+  { id: 'performance',title: 'Performance KPIs',     subtitle: 'Impact metrics',             icon: '📊', layout: '2col' },
+];
+
+// ── Dashboard JSON schema ─────────────────────────────────────────────────────
 const SCHEMA_DESCRIPTION = `
 Return a COMPLETE dashboard configuration JSON with this exact schema:
 
 {
   "version": 1,
   "workflowId": "string",
+  "lensId": "string",
   "theme": {
     "brandName": "string",
-    "designStyle": "string (e.g. 'Luxury Editorial', 'Tech Modern', 'Healthcare Authority')",
+    "designStyle": "string",
     "primaryColor": "#hex",
     "secondaryColor": "#hex",
     "accentColor": "#hex",
@@ -37,157 +91,656 @@ Return a COMPLETE dashboard configuration JSON with this exact schema:
     "shadowStyle": "soft|medium|hard",
     "cardStyle": "elevated|flat|bordered"
   },
-  "storyboard": [
-    {
-      "id": "tab-slug",
-      "title": "Tab Title",
-      "subtitle": "One-line description",
-      "icon": "single emoji",
-      "layout": "hero|2col|3col|analytics|storytelling|executive"
-    }
-  ],
+  "storyboard": [ /* PROVIDED — do not change tab ids or titles */ ],
   "pages": [
     {
-      "tabId": "tab-slug",
+      "tabId": "matches storyboard id",
       "heroConfig": {
-        "headline": "Brand Executive Summary",
-        "subline": "Reporting period and context",
-        "stat": "247",
-        "statLabel": "Total Articles"
+        "headline": "string",
+        "subline": "string",
+        "stat": "number string",
+        "statLabel": "string"
       },
       "widgets": [
         {
-          "id": "unique-widget-id",
+          "id": "unique-id",
           "type": "kpi-card|chart|insight|narrative|hero-banner",
-          "title": "Widget title",
+          "title": "string",
           "span": 1,
 
-          // For kpi-card:
+          // kpi-card fields:
           "value": "string",
           "label": "string",
           "delta": "+12%",
           "deltaPos": true,
           "icon": "emoji",
 
-          // For chart (REQUIRED — never empty):
+          // chart fields (REQUIRED — always include rawChartData):
           "chartType": "line|bar|area|pie|radialBar|lollipop",
-          "rawChartData": [{ "label": "Jan", "value1": 120, "value2": 80 }],
+          "rawChartData": [{ "label": "Jan", "val1": 120, "val2": 80 }],
           "xKey": "label",
-          "series": [{"key": "value1", "label": "Series Name", "color": "#hex"}],
+          "series": [{"key": "val1", "label": "Series Name", "color": "#hex"}],
 
-          // For insight/narrative:
-          "content": "2-4 sentences of executive narrative",
-          "highlights": ["key finding 1", "key finding 2"]
+          // insight/analysis fields (attach from chart_insights when available):
+          "insight": "2-sentence insight for this chart from chart_insights",
+          "analysis": "Full bullet-point analysis text if chart has analysis in chart_insights",
+          "dateInsights": [{"date": "YYYY-MM-DD","title":"Spike","summary":"...","pattern_type":"...","peak_day":"...","avg":"..."}],
+
+          // insight/narrative fields:
+          "content": "2-4 sentences of insight",
+          "highlights": ["finding 1", "finding 2"]
         }
       ]
     }
   ],
   "executiveInsights": {
-    "summary": "3-4 sentence executive overview",
-    "keyFindings": ["finding 1", "finding 2", "finding 3"],
+    "summary": "3-4 sentence overview derived from the actual data",
+    "keyFindings": ["specific finding from the data 1", "finding 2", "finding 3"],
     "recommendations": ["action 1", "action 2"],
-    "risks": ["risk 1"]
+    "risks": ["risk derived from data"]
   }
 }`;
 
 const LAYOUT_GUIDE = `
-Layout types:
-- "hero": Full-width hero with headline + KPI row + 1 main chart (spans 2-3 cols)
-- "2col": Two equal columns of widgets
-- "3col": Three columns (span 1 each, or span 2 for featured)
-- "analytics": Left KPI column + right chart area (3col with left col having span-1 KPIs)
-- "storytelling": Alternating narrative + chart sections, span 3 for narratives
-- "executive": Large stats + minimal charts, brand-forward presentation
+Layout rules:
+- "hero": hero-banner (span 3) + 3x kpi-card (span 1) + main chart (span 3)
+- "analytics": 3x kpi-card (span 1) + large chart (span 2) + supporting chart (span 1)
+- "3col": 3x kpi-card then charts filling 3 columns using span 1 or 2
+- "2col": alternating chart + insight pairs (span 2 + span 1)
+- "storytelling": narrative (span 3) + chart (span 2) + kpi (span 1) alternating
+- "executive": hero-banner (span 3) + 4x kpi-card + 1 radialBar chart (span 1)
 
-Span values: 1 (one column), 2 (two columns), 3 (full width)
-For hero layout: first widget should be type "hero-banner" with span 3, then KPIs (span 1 each), then main chart (span 2-3)
-For storytelling: use "narrative" type with span 3 between chart sections
-`;
+Always fill ALL tabs with widgets — never return an empty page.
+Span 1 = one column, span 2 = two columns, span 3 = full width.`;
 
-// ── AI system prompt for dashboard generation ────────────────────────────────
-const DASHBOARD_GEN_SYSTEM = `You are an elite media intelligence dashboard architect for an enterprise-grade platform (comparable to Meltwater, Brandwatch, Pulsar).
+const SYSTEM_PROMPT = `You are an elite media intelligence dashboard architect.
+Your output powers a live enterprise dashboard platform (Meltwater/Brandwatch grade).
 
-You design UNIQUE, brand-specific dashboard experiences. Each brand must receive a completely different visual identity, storyboard structure, and layout composition.
+The user prompt contains a CHARTS API RESPONSE — this is the single source of truth for ALL content.
+You must read it carefully and use the EXACT numbers, texts, and structures from it.
 
-CRITICAL RULES:
-1. Generate rawChartData for EVERY chart widget. Data must be realistic and derived from the input context.
-2. Each brand gets a UNIQUE color system — never reuse designs across brands.
-3. Design the storyboard based on available data and the dashboard type selected.
-4. Choose chart types that best represent the data (sentiment → area/line, share-of-voice → pie/bar, trends → line, distributions → bar).
-5. Include 4-6 tabs in the storyboard with varied layouts.
-6. Executive insights must be specific and data-derived.
-7. Typography must feel premium — choose distinctive Google Fonts that match brand personality.
-8. For luxury brands: warm tones, serif fonts, refined layouts.
-9. For tech brands: crisp dark/light contrast, mono fonts for data, modern sans.
-10. For healthcare/nonprofit: authoritative but approachable, trust-building blues/greens.
+CHARTS API RESPONSE structure:
+• chart_data         — raw metrics: total_count, total_reach, sentiment_distribution,
+                       theme_distribution, top_publications, publication_reach_sentiment,
+                       datewise_coverage, datewise_distribution, syndication, top_articles
+• chart_insights     — per-metric AI analysis: each key has { insight, analysis, date_insights[] }
+                       COPY these directly onto matching chart widgets as:
+                         widget.insight      = chart_insights[key].insight
+                         widget.analysis     = chart_insights[key].analysis
+                         widget.dateInsights = chart_insights[key].date_insights
+• storyboard         — 5 chapter objects defining narrative structure
+• overall_assessment — executive summary text string
+• top_articles       — POS/NEG/NEU article arrays for narrative widgets
+
+ABSOLUTE RULES:
+1. ALL KPI values come from chart_data numbers — never fabricate.
+2. ALL chart rawChartData comes from chart_data arrays — never fabricate.
+3. ALL insight/analysis/dateInsights on widgets come from chart_insights — copy them verbatim.
+4. Each tab has COMPLETELY different widgets — zero repetition across tabs.
+5. Narrative widgets in Tab 5 use actual article titles and domains from top_articles.
+6. The "overall_assessment" string goes on the executive insight widget in Tab 1.
+7. Choose chart types that match data shape:
+   - Time-series → area or line
+   - Category counts → bar
+   - Proportions → pie
+   - Scores/percentages → radialBar
+8. Always fill every tab — never return an empty page.
+9. Respond with ONLY valid JSON — no markdown, no explanation.
 
 ${SCHEMA_DESCRIPTION}
 
-${LAYOUT_GUIDE}
+${LAYOUT_GUIDE}`;
 
-Respond with ONLY valid JSON — no markdown fences, no explanation.`;
+// ── Fetch real chart data from remote backend ─────────────────────────────────
+async function fetchRemoteCharts(workflowId, lensId) {
+  const base = process.env.VITE_API_BASE_URL || 'https://pr-solutions-be.devamx.com';
+  try {
+    const res = await fetch(`${base}/charts?workflow_id=${workflowId}&lens_id=${lensId}`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
 
-// ── Apply dashboard changes from chat ─────────────────────────────────────────
+/**
+ * Convert the charts-API storyboard array into our internal tab format.
+ * The charts API returns:
+ *   storyboard: [{ chapter, tab_name, section_label, title, description, what_to_watch_for }]
+ *
+ * We map tab_name → slug id, preserve title and description as subtitle.
+ */
+function deriveStoryboardFromCharts(remoteCharts, lensNumId) {
+  const apiStoryboard = remoteCharts?.storyboard;
+  if (Array.isArray(apiStoryboard) && apiStoryboard.length > 0) {
+    return apiStoryboard.map((s) => ({
+      id: s.tab_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+      title: s.tab_name,
+      subtitle: s.section_label ?? s.description?.slice(0, 60) ?? '',
+      icon: '📊',
+      layout: s.chapter === 1 ? 'hero' : s.chapter === 2 ? 'analytics' : '3col',
+      description: s.description ?? '',
+      whatToWatch: s.what_to_watch_for ?? [],
+    }));
+  }
+  return LENS_STORYBOARDS[lensNumId] ?? DEFAULT_STORYBOARD;
+}
+
+// ── Mount routes ──────────────────────────────────────────────────────────────
+export function mountDashboardRoutes(app, callAI, workflows) {
+
+  // ── Universal async handler wrapper — guarantees a JSON response always ──────
+  // Express async route handlers silently drop unhandled promise rejections.
+  // This wrapper catches them and ensures the client always gets JSON back.
+  function asyncRoute(fn) {
+    return (req, res, next) => {
+      Promise.resolve(fn(req, res, next)).catch((err) => {
+        console.error('[asyncRoute] uncaught:', err.message);
+        if (!res.headersSent) {
+          res.status(500).json({ error: err.message ?? 'Internal server error' });
+        }
+      });
+    };
+  }
+
+  // GET /api/dashboard/:workflowId?lens_id=
+  app.get('/api/dashboard/:workflowId', asyncRoute(async (req, res) => {
+    const { workflowId } = req.params;
+    const lensId         = req.query.lens_id ?? '1';
+    const cacheKey       = `${workflowId}:${lensId}`;
+
+    // ── Step 1: ALWAYS fetch remote charts ────────────────────────────────
+    // Called on every request — no cache bypass — so the dashboard always
+    // reflects the latest data from the external API.
+    console.log(`[dashboard] fetching charts for workflow=${workflowId} lens=${lensId}…`);
+    const remoteCharts = await fetchRemoteCharts(workflowId, lensId);
+    console.log(`[dashboard] charts fetched: ${remoteCharts ? 'OK' : 'NULL (API unreachable)'}`);
+
+    // ── Step 2: ALWAYS run AI generation ──────────────────────────────────
+    // No cache — every page load/refresh triggers a fresh OpenAI call so
+    // the dashboard content is always derived from the latest charts data.
+    console.log(`[dashboard] running AI generation for workflow=${workflowId} lens=${lensId}…`);
+
+    try {
+      // Pull workflow from local store first; if absent, fetch from remote API
+      let wf = workflows.get(workflowId);
+      if (!wf) {
+        try {
+          const base = process.env.VITE_API_BASE_URL || 'https://pr-solutions-be.devamx.com';
+          const r = await fetch(`${base}/workflow/${workflowId}`);
+          if (r.ok) {
+            wf = await r.json();
+            console.log(`[dashboard] workflow ${workflowId} fetched from remote API`);
+          }
+        } catch (e) {
+          console.warn(`[dashboard] could not fetch workflow ${workflowId} from remote:`, e.message);
+        }
+      }
+
+      // Find the branch that matches this lensId
+      const branches    = wf?.workflow?.branches ?? [];
+      const branch      = branches.find(
+        (b) => String(b.analysis?.lens_details?.id) === String(lensId)
+      ) ?? branches[0] ?? {};
+
+      const brandName   = branch?.assembly?.branding?.client_name
+                       ?? wf?.workflow?.assembly?.branding?.client_name
+                       ?? wf?.name ?? 'Brand';
+      const lensLabel   = branch?.analysis?.lens_details?.label ?? 'Media Intelligence';
+      const lensNumId   = parseInt(lensId, 10);
+      const competitors = branch?.analysis?.competitors ?? [];
+      const primaryColor = branch?.assembly?.branding?.color?.primary ?? '#7C3AED';
+      const skillPrompt  = branch?.analysis?.skill_prompt ?? '';
+
+      // remoteCharts already fetched at the top of the handler (Step 1 above)
+      // Use storyboard from charts API if present, else fall back to hardcoded lens map
+      const storyboard = deriveStoryboardFromCharts(remoteCharts, lensNumId);
+
+      // ── Build the full charts payload for OpenAI ─────────────────────────
+      // Strategy: send the complete fetchRemoteCharts response but compress
+      // only the pure time-series arrays that are 80+ empty zero entries.
+      // All semantic content (insights, analysis, articles, storyboard) is kept intact.
+      let chartsPayload = 'No remote chart data available.';
+
+      if (remoteCharts) {
+        const cd = remoteCharts.chart_data ?? {};
+
+        // Compress datewise arrays — keep only non-zero days (zeros add no signal)
+        const compressedCd = {
+          ...cd,
+          datewise_coverage: (cd.datewise_coverage ?? [])
+            .filter(d => d.count > 0)
+            .slice(0, 40),
+          datewise_distribution: cd.datewise_distribution
+            ? Object.fromEntries(
+                Object.entries(cd.datewise_distribution)
+                  .filter(([, v]) => (v.POS ?? 0) + (v.NEG ?? 0) + (v.NEU ?? 0) > 0)
+                  .slice(0, 40)
+              )
+            : undefined,
+          // Compress publish_time_heatmap to just daily totals (not hour-by-hour zeros)
+          publish_time_heatmap: (cd.publish_time_heatmap ?? []).map(dayObj => ({
+            day: dayObj.day,
+            total: (dayObj.data ?? []).reduce((sum, h) => sum + (h.count ?? 0), 0),
+            peak_hour: (dayObj.data ?? []).reduce((best, h) => h.count > (best?.count ?? 0) ? h : best, null),
+          })).filter(d => d.total > 0),
+        };
+
+        // chart_insights: keep full insight + analysis + date_insights for all fields
+        // (this is the rich pre-analysed content that drives widget quality)
+        const ci = remoteCharts.chart_insights ?? {};
+
+        // Storyboard: full chapters with descriptions and what_to_watch_for
+        const sb = remoteCharts.storyboard ?? [];
+
+        // top_articles: keep title, sentiment, theme, domain (drop lengthy content)
+        const topArticles = remoteCharts.chart_data?.top_articles ?? {};
+        const slimArticles = {};
+        ['POS','NEG','NEU'].forEach(sent => {
+          slimArticles[sent] = (topArticles[sent] ?? []).slice(0, 3).map(a => ({
+            id: a.id, title: a.title, sentiment: a.sentiment,
+            theme: a.theme, domain: a.domain, date: a.date,
+          }));
+        });
+
+        chartsPayload = JSON.stringify({
+          chart_data:          compressedCd,
+          chart_insights:      ci,
+          storyboard:          sb,
+          overall_assessment:  remoteCharts.overall_assessment ?? '',
+          top_articles:        slimArticles,
+        }, null, 2);
+      }
+
+      const userPrompt = `You are generating a dashboard config for the following brand and lens.
+Use ONLY the data from the CHARTS API RESPONSE below. Do not invent numbers.
+
+Brand: ${brandName}
+Lens: ${lensLabel} (lens_id: ${lensId})
+Primary color hint: ${primaryColor}
+${competitors.length ? `Competitors: ${competitors.join(', ')}` : ''}
+
+DASHBOARD TABS (generate one page per tab, each COMPLETELY DIFFERENT):
+${JSON.stringify(storyboard.map(t => ({ id: t.id, title: t.title, layout: t.layout })))}
+
+CHARTS API RESPONSE (this is your single source of truth):
+${chartsPayload}
+
+WIDGET MAPPING RULES — derive ALL values from the API response above:
+• Tab 1 (Overview):  KPI cards from chart_data.total_count, total_reach, sentiment_distribution scores.
+                     Line/area chart from chart_data.datewise_coverage (date → count).
+                     Use chart_insights.total_count and chart_insights.total_reach for insight/analysis fields.
+• Tab 2 (Sentiment): Pie chart from sentiment_distribution POS/NEG/NEU percentages.
+                     Area chart from datewise_distribution (POS/NEG/NEU over time).
+                     Use chart_insights.sentiment_distribution insight, analysis, and date_insights as dateInsights on the area chart.
+• Tab 3 (Themes):    Bar chart from theme_distribution (theme vs count).
+                     KPI cards for top 3 themes.
+                     Use chart_insights.theme_distribution insight/analysis.
+• Tab 4 (Coverage):  Bar chart from top_publications.
+                     Bar/scatter from publication_reach_sentiment.
+                     Heatmap summary from publish_time_heatmap.
+                     Use chart_insights.top_publications and chart_insights.publication_reach_sentiment.
+• Tab 5 (Stories):   Narrative widgets from top_articles — one POS card, one NEG card, one NEU card.
+                     Use article title, domain, theme, date. Show the overall_assessment as an insight widget.
+
+FIELD MAPPING for chart widgets:
+- "insight" field: copy from chart_insights[matching_key].insight
+- "analysis" field: copy from chart_insights[matching_key].analysis
+- "dateInsights" field: copy from chart_insights[matching_key].date_insights (array of spikes)`;
+
+
+      // ── AI call with explicit fallback ────────────────────────────────────
+      let raw;
+      try {
+        raw = await callAI(SYSTEM_PROMPT, userPrompt, { maxTokens: 8000 });
+      } catch (aiErr) {
+        console.error('[dashboard gen] AI call failed:', aiErr.message);
+        // Don't re-throw — use fallback dashboard immediately
+        const fallback = buildFallbackDashboard(workflowId, lensId, brandName, lensLabel, primaryColor, storyboard, remoteCharts);
+        fallback.workflowId = workflowId;
+        fallback.lensId     = lensId;
+        fallback.generatedAt = new Date().toISOString();
+        if (remoteCharts) {
+          fallback.chartsStoryboard  = remoteCharts.storyboard ?? [];
+          fallback.chartInsights     = remoteCharts.chart_insights ?? {};
+          fallback.overallAssessment = remoteCharts.overall_assessment ?? '';
+        }
+        const entry = { versionId: randomUUID(), createdAt: new Date().toISOString(), label: 'Fallback (AI unavailable)', config: fallback };
+        dashboardStore.set(cacheKey, [entry]);
+        return res.json(fallback);
+      }
+
+      let config;
+      try {
+        const jsonMatch = raw.match(/\{[\s\S]*\}/);
+        config = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+      } catch (parseErr) {
+        console.warn('[dashboard gen] JSON parse failed, using fallback:', parseErr.message);
+        config = buildFallbackDashboard(workflowId, lensId, brandName, lensLabel, primaryColor, storyboard, remoteCharts);
+      }
+
+      // Enforce metadata
+      config.workflowId  = workflowId;
+      config.lensId      = lensId;
+      config.generatedAt = new Date().toISOString();
+      config.version     = 1;
+
+      // Always use the correct storyboard — AI may have drifted
+      config.storyboard  = storyboard;
+
+      // Fill any missing chart data
+      config = ensureChartData(config, primaryColor);
+
+      // Attach rich charts API data to the config for frontend consumption
+      if (remoteCharts) {
+        config.chartsStoryboard = remoteCharts.storyboard ?? [];
+        config.chartInsights    = remoteCharts.chart_insights ?? {};
+        config.overallAssessment = remoteCharts.overall_assessment ?? '';
+      }
+
+      const entry = {
+        versionId: randomUUID(),
+        createdAt: new Date().toISOString(),
+        label: 'Initial generation',
+        config,
+      };
+      dashboardStore.set(cacheKey, [entry]);
+      res.json(config);
+
+    } catch (err) {
+      console.error('[dashboard gen] unhandled error:', err.message, err.stack?.split('\n')[1]);
+      // Always return a usable fallback rather than crashing the frontend
+      try {
+        const fallback = buildFallbackDashboard(
+          workflowId, lensId, 'Brand', 'Media Intelligence', '#7C3AED',
+          LENS_STORYBOARDS[parseInt(lensId, 10)] ?? DEFAULT_STORYBOARD, null
+        );
+        fallback.workflowId  = workflowId;
+        fallback.lensId      = lensId;
+        fallback.generatedAt = new Date().toISOString();
+        fallback._error      = err.message;   // surface the error in the config for debugging
+        dashboardStore.set(cacheKey, [{ versionId: randomUUID(), createdAt: new Date().toISOString(), label: 'Error fallback', config: fallback }]);
+        return res.json(fallback);
+      } catch {
+        res.status(500).json({ error: err.message });
+      }
+    }
+  }));  // ← closes asyncRoute wrapper
+
+  // POST /api/dashboard/:workflowId/chat
+  app.post('/api/dashboard/:workflowId/chat', asyncRoute(async (req, res) => {
+    const { workflowId }   = req.params;
+    const lensId           = req.query.lens_id ?? '1';
+    const cacheKey         = `${workflowId}:${lensId}`;
+    const { message, conversationHistory = [], pendingWidgets = [] } = req.body;
+
+    const stored = dashboardStore.get(cacheKey);
+    if (!stored?.length) {
+      return res.status(404).json({ error: 'Dashboard not found — generate it first via GET /api/dashboard/:workflowId?lens_id=' });
+    }
+
+    const currentConfig = stored[stored.length - 1].config;
+
+    const chatSystem = `You are an elite AI analyst for Fortune 500 companies using a Media Intelligence platform.
+You return structured Generative UI responses — each response is a document composed of typed blocks
+that render as beautiful, executive-quality cards, charts, and tables directly in the conversation.
+
+RESPONSE FORMAT (always return this exact shape):
+{
+  "response": "One concise sentence summary of what you're presenting (use **bold** for key numbers).",
+  "blocks": [
+    /* BLOCK TYPES — use the most appropriate for each piece of content */
+
+    { "type": "executive_summary",
+      "headline": "Compact bold headline with a key number",
+      "subline": "Supporting context in one sentence",
+      "badge": "POSITIVE | NEGATIVE | NEUTRAL | URGENT | INFO",
+      "points": ["key point 1", "key point 2", "key point 3"] },
+
+    { "type": "kpi_grid",
+      "kpis": [
+        { "label": "Total Articles", "value": "11", "delta": "+3 vs prior", "deltaPos": true,
+          "subtext": "Feb–May 2026", "color": "#5B5BD6" }
+      ] },
+
+    { "type": "chart",
+      "chartType": "area|line|bar|horizontal-bar|pie|donut|sov|sentiment-bar|stacked-bar|wordcloud",
+      "title": "Chart title",
+      "subtitle": "Optional subtitle",
+      "xKey": "label",
+      "data": [{ "label": "Jan", "Positive": 6, "Negative": 1 }],
+      "series": [{ "key": "Positive", "label": "Positive", "color": "#16A34A" }],
+      "insight": "2-sentence insight from the data" },
+
+    { "type": "table",
+      "title": "Table title",
+      "columns": [
+        { "key": "publication", "label": "Publication", "type": "text" },
+        { "key": "sentiment",   "label": "Sentiment",   "type": "sentiment" },
+        { "key": "count",       "label": "Count",       "type": "number" },
+        { "key": "reach",       "label": "Reach",       "type": "number" }
+      ],
+      "rows": [{ "publication": "globenewswire.com", "sentiment": "Positive", "count": 2, "reach": 789741 }] },
+
+    { "type": "insight_card",
+      "icon": "✦",
+      "title": "Key Finding",
+      "priority": "HIGH | MEDIUM | LOW",
+      "content": "Analytical finding with **bold key numbers**.",
+      "bullets": ["sub-point 1", "sub-point 2"] },
+
+    { "type": "recommendation",
+      "priority": "HIGH | MEDIUM | LOW",
+      "title": "Action title",
+      "rationale": "Why this matters",
+      "action": "Specific action to take" },
+
+    { "type": "narrative",
+      "title": "Story title",
+      "chapter": "1 of 5",
+      "theme": "Legal Victory | Sentiment Spike | Coverage Gap",
+      "content": "Narrative text about what happened and why it matters." },
+
+    { "type": "text",
+      "content": "Plain prose text with **bold** support." }
+  ],
+  "changes": [
+    { "type": "add_widget",    "tabId": "...", "widget": { full widget object } },
+    { "type": "remove_widget", "tabId": "...", "widgetId": "..." },
+    { "type": "update_widget", "tabId": "...", "widgetId": "...", "updates": {} }
+  ]
+}
+
+RULES:
+- Always derive numbers from the real chart data in the dashboard config
+- Use sentiment colors: Positive=#16A34A, Negative=#F43F5E, Neutral=#9CA3AF
+- For chart data, map from chart_data fields: datewise_coverage→area/line, sentiment_distribution→pie/donut, theme_distribution→bar, top_publications→horizontal-bar, top_authors→horizontal-bar
+- kpi_grid: always include at least 3 KPIs from the actual data (total_count, total_reach, net_sentiment_score)
+- insight_card priority: HIGH for risks/anomalies, MEDIUM for trends, LOW for informational
+- REMOVAL: use changes[].type="remove_widget" immediately, no blocks needed
+- Return ONLY valid JSON. No markdown fences. No trailing commas.`;
+
+
+    // Build pending widgets context if user is confirming
+    const pendingContext = pendingWidgets.length
+      ? `\nPENDING WIDGETS (user is confirming these for dashboard):\n${JSON.stringify(pendingWidgets, null, 2).slice(0, 3000)}`
+      : '';
+
+    const userMsg = `Current dashboard config (tabs: ${currentConfig.storyboard?.map(t => t.title).join(', ')}):
+${JSON.stringify(currentConfig, null, 2).slice(0, 5000)}
+${pendingContext}
+
+User message: "${message}"
+${conversationHistory.length ? `\nConversation history:\n${conversationHistory.slice(-4).map(m => `${m.role}: ${m.content}`).join('\n')}` : ''}`;
+
+    try {
+      const raw = await callAI(chatSystem, userMsg, { maxTokens: 4000 });
+      let result;
+      try {
+        const jsonMatch = raw.match(/\{[\s\S]*\}/);
+        result = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+      } catch {
+        result = { response: raw, changes: [], chatWidgets: [] };
+      }
+
+      const changes    = result.changes    ?? [];
+      const chatWidgets  = result.chatWidgets  ?? [];
+      const components   = result.components   ?? [];
+      const blocks       = result.blocks       ?? [];  // Generative UI blocks
+      const newConfig  = changes.length ? applyChanges(currentConfig, changes) : currentConfig;
+
+      if (changes.length) {
+        stored.push({
+          versionId: randomUUID(),
+          createdAt: new Date().toISOString(),
+          label: message.slice(0, 60),
+          config: newConfig,
+        });
+        dashboardStore.set(cacheKey, stored);
+      }
+
+      res.json({
+        message: result.response ?? result.message ?? 'Done.',
+        changesApplied: changes.length,
+        config: newConfig,
+        blocks,        // ← Generative UI blocks (primary)
+        chatWidgets,   // ← legacy chart preview widgets
+        components,    // ← legacy rich inline components
+        versionId: stored[stored.length - 1].versionId,
+      });
+    } catch (err) {
+      console.error('[dashboard chat] error:', err.message);
+      // Return a graceful error message rather than crashing the frontend
+      res.json({
+        message: `I ran into a problem: ${err.message}. Please try a simpler request or regenerate the dashboard.`,
+        changesApplied: 0,
+        config: dashboardStore.get(cacheKey)?.[dashboardStore.get(cacheKey).length - 1]?.config ?? null,
+        chatWidgets: [],
+      });
+    }
+  }));  // ← closes asyncRoute wrapper
+
+  // POST /api/dashboard/:workflowId/add-widget — promote a chat preview to dashboard
+  app.post('/api/dashboard/:workflowId/add-widget', (req, res) => {
+    const { workflowId } = req.params;
+    const lensId         = req.query.lens_id ?? '1';
+    const cacheKey       = `${workflowId}:${lensId}`;
+    const { tabId, widget, label } = req.body;
+
+    const stored = dashboardStore.get(cacheKey);
+    if (!stored?.length) return res.status(404).json({ error: 'Dashboard not found' });
+
+    const currentConfig = stored[stored.length - 1].config;
+    const newConfig     = applyChanges(currentConfig, [
+      { type: 'add_widget', tabId, widget: { ...widget, id: widget.id ?? randomUUID() } },
+    ]);
+
+    stored.push({
+      versionId: randomUUID(),
+      createdAt: new Date().toISOString(),
+      label: label ?? `Added widget: ${widget.title ?? 'chart'}`,
+      config: newConfig,
+    });
+    dashboardStore.set(cacheKey, stored);
+    res.json({ success: true, config: newConfig, versionId: stored[stored.length - 1].versionId });
+  });
+
+  // DELETE /api/dashboard/:workflowId/remove-widget — remove a widget from dashboard
+  app.delete('/api/dashboard/:workflowId/remove-widget', (req, res) => {
+    const { workflowId } = req.params;
+    const lensId         = req.query.lens_id ?? '1';
+    const cacheKey       = `${workflowId}:${lensId}`;
+    const { tabId, widgetId } = req.body;
+
+    const stored = dashboardStore.get(cacheKey);
+    if (!stored?.length) return res.status(404).json({ error: 'Dashboard not found' });
+
+    const currentConfig = stored[stored.length - 1].config;
+    const newConfig     = applyChanges(currentConfig, [
+      { type: 'remove_widget', tabId, widgetId },
+    ]);
+
+    stored.push({
+      versionId: randomUUID(),
+      createdAt: new Date().toISOString(),
+      label: `Removed widget ${widgetId}`,
+      config: newConfig,
+    });
+    dashboardStore.set(cacheKey, stored);
+    res.json({ success: true, config: newConfig });
+  });
+
+  // GET /api/dashboard/:workflowId/versions
+  app.get('/api/dashboard/:workflowId/versions', (req, res) => {
+    const lensId   = req.query.lens_id ?? '1';
+    const cacheKey = `${req.params.workflowId}:${lensId}`;
+    const stored   = dashboardStore.get(cacheKey) ?? [];
+    res.json(stored.map(({ versionId, createdAt, label, config }) => ({
+      versionId, createdAt, label, version: config.version,
+    })));
+  });
+
+  // POST /api/dashboard/:workflowId/restore/:versionId
+  app.post('/api/dashboard/:workflowId/restore/:versionId', (req, res) => {
+    const lensId   = req.query.lens_id ?? '1';
+    const cacheKey = `${req.params.workflowId}:${lensId}`;
+    const stored   = dashboardStore.get(cacheKey) ?? [];
+    const entry    = stored.find(e => e.versionId === req.params.versionId);
+    if (!entry) return res.status(404).json({ error: 'Version not found' });
+
+    const restored = { ...entry.config, version: (stored[stored.length - 1]?.config.version ?? 1) + 1 };
+    stored.push({ versionId: randomUUID(), createdAt: new Date().toISOString(), label: `Restored from v${entry.config.version}`, config: restored });
+    dashboardStore.set(cacheKey, stored);
+    res.json(restored);
+  });
+}
+
+// ── Apply chat change operations ──────────────────────────────────────────────
 function applyChanges(config, changes) {
-  const next = JSON.parse(JSON.stringify(config)); // deep clone
+  const next = JSON.parse(JSON.stringify(config));
   next.version = (next.version ?? 1) + 1;
 
   for (const change of changes) {
     switch (change.type) {
-
       case 'update_theme':
         Object.assign(next.theme, change.updates);
         break;
-
       case 'add_tab': {
         const tab = { id: change.id ?? `tab-${Date.now()}`, title: change.title, subtitle: change.subtitle ?? '', icon: change.icon ?? '📊', layout: change.layout ?? '3col' };
         next.storyboard.push(tab);
         next.pages.push({ tabId: tab.id, heroConfig: {}, widgets: change.widgets ?? [] });
         break;
       }
-
       case 'remove_tab':
-        next.storyboard = next.storyboard.filter((t) => t.id !== change.tabId);
-        next.pages = next.pages.filter((p) => p.tabId !== change.tabId);
+        next.storyboard = next.storyboard.filter(t => t.id !== change.tabId);
+        next.pages      = next.pages.filter(p => p.tabId !== change.tabId);
         break;
-
       case 'add_widget': {
-        const page = next.pages.find((p) => p.tabId === change.tabId);
+        const page = next.pages.find(p => p.tabId === change.tabId);
         if (page) page.widgets.push({ id: randomUUID(), ...change.widget });
         break;
       }
-
       case 'remove_widget': {
-        const page = next.pages.find((p) => p.tabId === change.tabId);
-        if (page) page.widgets = page.widgets.filter((w) => w.id !== change.widgetId);
+        const page = next.pages.find(p => p.tabId === change.tabId);
+        if (page) page.widgets = page.widgets.filter(w => w.id !== change.widgetId);
         break;
       }
-
       case 'update_widget': {
-        const page = next.pages.find((p) => p.tabId === change.tabId);
-        if (page) {
-          const widget = page.widgets.find((w) => w.id === change.widgetId);
-          if (widget) Object.assign(widget, change.updates);
-        }
+        const page = next.pages.find(p => p.tabId === change.tabId);
+        if (page) { const w = page.widgets.find(w => w.id === change.widgetId); if (w) Object.assign(w, change.updates); }
         break;
       }
-
       case 'replace_page': {
-        const idx = next.pages.findIndex((p) => p.tabId === change.tabId);
+        const idx = next.pages.findIndex(p => p.tabId === change.tabId);
         if (idx >= 0) next.pages[idx] = { tabId: change.tabId, heroConfig: change.heroConfig ?? {}, widgets: change.widgets ?? [] };
         break;
       }
-
       case 'reorder_tabs':
-        if (Array.isArray(change.order)) {
-          next.storyboard = change.order.map((id) => next.storyboard.find((t) => t.id === id)).filter(Boolean);
-        }
+        if (Array.isArray(change.order)) next.storyboard = change.order.map(id => next.storyboard.find(t => t.id === id)).filter(Boolean);
         break;
-
       case 'update_insights':
         Object.assign(next.executiveInsights ?? {}, change.updates);
         break;
-
       case 'replace_all':
         return { ...change.config, version: next.version };
     }
@@ -195,203 +748,68 @@ function applyChanges(config, changes) {
   return next;
 }
 
-// ── Mount routes on an Express app instance ──────────────────────────────────
-export function mountDashboardRoutes(app, callAI, workflows) {
-
-  // ── GET /api/dashboard/:workflowId — generate or retrieve ─────────────────
-  app.get('/api/dashboard/:workflowId', async (req, res) => {
-    const { workflowId } = req.params;
-    const { regenerate } = req.query;
-
-    // Return cached if available and not forcing regeneration
-    const stored = dashboardStore.get(workflowId);
-    if (stored?.length && !regenerate) {
-      return res.json(stored[stored.length - 1].config);
-    }
-
-    try {
-      // Get workflow context
-      const wf = workflows.get(workflowId);
-      const brandName     = wf?.workflow?.assembly?.branding?.client_name ?? wf?.name ?? 'Brand';
-      const dashboardType = wf?.workflow?.branches?.[0]?.analysis?.lens_details?.label ?? 'Media Intelligence';
-      const primaryColor  = wf?.workflow?.assembly?.branding?.color?.primary ?? '#7C3AED';
-      const competitors   = wf?.workflow?.branches?.[0]?.analysis?.competitors ?? [];
-
-      const userPrompt = `Brand: ${brandName}
-Dashboard type: ${dashboardType}
-Brand primary color hint: ${primaryColor}
-Competitors tracked: ${competitors.join(', ') || 'none specified'}
-Workflow name: ${wf?.name ?? 'Media Intelligence Dashboard'}
-
-Generate a complete, brand-unique dashboard configuration for this brand.
-Make the design feel authentically tailored to ${brandName}'s identity and industry.
-Include 4-5 storyboard tabs covering: Executive Summary, Media Coverage, Sentiment Analysis, Narrative Intelligence, and a brand-specific 5th tab.
-Generate realistic rawChartData for all chart widgets based on a typical ${dashboardType} report context.`;
-
-      const raw = await callAI(DASHBOARD_GEN_SYSTEM, userPrompt, { maxTokens: 8000 });
-
-      let config;
-      try {
-        const jsonMatch = raw.match(/\{[\s\S]*\}/);
-        config = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
-        config.workflowId = workflowId;
-        config.generatedAt = new Date().toISOString();
-        config.version = 1;
-      } catch {
-        config = buildFallbackDashboard(workflowId, brandName, dashboardType, primaryColor);
-      }
-
-      // Validate and fill missing rawChartData
-      config = ensureChartData(config, brandName);
-
-      // Store with versioning
-      const entry = { versionId: randomUUID(), createdAt: new Date().toISOString(), label: 'Initial generation', config };
-      dashboardStore.set(workflowId, [entry]);
-
-      res.json(config);
-    } catch (err) {
-      console.error('[dashboard gen] error:', err);
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // ── POST /api/dashboard/:workflowId/chat — conversational modification ─────
-  app.post('/api/dashboard/:workflowId/chat', async (req, res) => {
-    const { workflowId } = req.params;
-    const { message, conversationHistory = [] } = req.body;
-
-    const stored = dashboardStore.get(workflowId);
-    if (!stored?.length) {
-      return res.status(404).json({ error: 'Dashboard not found — generate it first' });
-    }
-
-    const currentConfig = stored[stored.length - 1].config;
-
-    const chatSystem = `You are an AI dashboard modification agent for a Media Intelligence platform.
-You receive the current dashboard configuration and a user request. You return structured changes to apply.
-
-The user's goal is to update the dashboard through natural language.
-You must return a JSON object with:
-{
-  "response": "Natural language description of what you're doing",
-  "changes": [
-    // Array of change operations — see types below
-  ]
-}
-
-Change operation types:
-- { "type": "update_theme", "updates": { "primaryColor": "#hex", ... } }
-- { "type": "add_tab", "id": "slug", "title": "...", "layout": "...", "widgets": [...] }
-- { "type": "remove_tab", "tabId": "slug" }
-- { "type": "add_widget", "tabId": "...", "widget": { complete widget config with rawChartData } }
-- { "type": "remove_widget", "tabId": "...", "widgetId": "..." }
-- { "type": "update_widget", "tabId": "...", "widgetId": "...", "updates": {...} }
-- { "type": "replace_page", "tabId": "...", "widgets": [...] }
-- { "type": "reorder_tabs", "order": ["tab-id-1", "tab-id-2", ...] }
-- { "type": "update_insights", "updates": { "summary": "...", "keyFindings": [...] } }
-- { "type": "replace_all", "config": { complete new dashboard config } }
-
-RULES:
-- Always include rawChartData for any new chart widgets you create
-- When changing theme, update chartPalette to match
-- When adding a dark theme, update backgroundColor, surfaceColor, textColor appropriately
-- Return ONLY valid JSON`;
-
-    const userMsg = `Current dashboard config:
-${JSON.stringify(currentConfig, null, 2).slice(0, 6000)}
-
-User request: "${message}"
-
-${conversationHistory.length ? `Previous conversation context: ${conversationHistory.slice(-3).map((m) => `${m.role}: ${m.content}`).join('\n')}` : ''}
-
-Return the JSON with "response" and "changes" arrays.`;
-
-    try {
-      const raw = await callAI(chatSystem, userMsg, { maxTokens: 4000 });
-
-      let result;
-      try {
-        const jsonMatch = raw.match(/\{[\s\S]*\}/);
-        result = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
-      } catch {
-        result = { response: raw, changes: [] };
-      }
-
-      const changes = result.changes ?? [];
-      const newConfig = changes.length > 0 ? applyChanges(currentConfig, changes) : currentConfig;
-
-      // Store new version if changes were made
-      if (changes.length > 0) {
-        const entry = {
-          versionId: randomUUID(),
-          createdAt: new Date().toISOString(),
-          label: message.slice(0, 60),
-          config: newConfig,
-        };
-        stored.push(entry);
-        dashboardStore.set(workflowId, stored);
-      }
-
-      res.json({
-        message: result.response ?? 'Dashboard updated.',
-        changesApplied: changes.length,
-        config: newConfig,
-        versionId: stored[stored.length - 1].versionId,
-      });
-    } catch (err) {
-      console.error('[dashboard chat] error:', err);
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // ── GET /api/dashboard/:workflowId/versions ───────────────────────────────
-  app.get('/api/dashboard/:workflowId/versions', (req, res) => {
-    const stored = dashboardStore.get(req.params.workflowId) ?? [];
-    res.json(
-      stored.map(({ versionId, createdAt, label, config }) => ({
-        versionId,
-        createdAt,
-        label,
-        version: config.version,
-      }))
-    );
-  });
-
-  // ── POST /api/dashboard/:workflowId/restore/:versionId ────────────────────
-  app.post('/api/dashboard/:workflowId/restore/:versionId', (req, res) => {
-    const stored = dashboardStore.get(req.params.workflowId) ?? [];
-    const entry = stored.find((e) => e.versionId === req.params.versionId);
-    if (!entry) return res.status(404).json({ error: 'Version not found' });
-
-    const restored = {
-      ...entry.config,
-      version: (stored[stored.length - 1]?.config.version ?? 1) + 1,
-    };
-    const newEntry = {
-      versionId: randomUUID(),
-      createdAt: new Date().toISOString(),
-      label: `Restored from v${entry.config.version}`,
-      config: restored,
-    };
-    stored.push(newEntry);
-    dashboardStore.set(req.params.workflowId, stored);
-    res.json(restored);
-  });
-}
-
-// ── Fallback dashboard builder ────────────────────────────────────────────────
-function buildFallbackDashboard(workflowId, brandName, dashboardType, primaryColor) {
+// ── Ensure all chart widgets have rawChartData ────────────────────────────────
+function ensureChartData(config, primaryColor) {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-  const R = () => Math.floor(Math.random() * 80 + 20);
+  for (const page of config.pages ?? []) {
+    for (const widget of page.widgets ?? []) {
+      if (widget.type === 'chart' && (!widget.rawChartData || !widget.rawChartData.length)) {
+        const xKey = widget.xKey ?? 'label';
+        widget.rawChartData = months.map(m => ({ [xKey]: m, value: Math.floor(Math.random() * 80 + 20) }));
+        if (!widget.series?.length) widget.series = [{ key: 'value', label: widget.title ?? 'Value', color: primaryColor ?? '#7C3AED' }];
+        if (!widget.xKey) widget.xKey = xKey;
+      }
+    }
+  }
+  return config;
+}
+
+// ── Fallback dashboard (when AI parse fails) ──────────────────────────────────
+function buildFallbackDashboard(workflowId, lensId, brandName, lensLabel, primaryColor, storyboard, remoteCharts) {
+  const months  = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+  const R       = (base = 40, range = 60) => Math.floor(Math.random() * range + base);
+  const primary = primaryColor || '#7C3AED';
+
+  // Extract any real numbers from remote charts to make fallback data-derived
+  const chartItems  = remoteCharts?.charts ?? [];
+  const firstSeries = chartItems[0]?.data ?? [];
+
+  const pages = storyboard.map((tab, i) => ({
+    tabId: tab.id,
+    heroConfig: { headline: `${brandName} — ${tab.title}`, subline: `${lensLabel} · Reporting Period`, stat: String(R(100, 200)), statLabel: 'Total Data Points' },
+    widgets: [
+      { id: `${tab.id}-hero`, type: 'hero-banner', title: tab.title, span: 3, headline: `${brandName}: ${tab.title}`, subline: tab.subtitle },
+      { id: `${tab.id}-kpi1`, type: 'kpi-card', title: 'Volume', value: String(R(80, 200)), label: 'Items', delta: `+${R(2, 18)}%`, deltaPos: true, icon: '📊', span: 1 },
+      { id: `${tab.id}-kpi2`, type: 'kpi-card', title: 'Score',  value: `${R(55, 40)}%`, label: 'Index', delta: `+${R(1, 8)}pts`, deltaPos: true, icon: '⭐', span: 1 },
+      { id: `${tab.id}-kpi3`, type: 'kpi-card', title: 'Reach',  value: `${R(1, 9)}.${R(0, 9)}M`, label: 'Audience', delta: `+${R(3, 15)}%`, deltaPos: true, icon: '👁️', span: 1 },
+      {
+        id: `${tab.id}-chart1`, type: 'chart', title: `${tab.title} Trend`, chartType: i % 2 === 0 ? 'area' : 'bar', span: 2, xKey: 'month',
+        rawChartData: firstSeries.length
+          ? firstSeries.map((d, j) => ({ month: months[j] ?? `W${j+1}`, value: Object.values(d).find(v => typeof v === 'number') ?? R() }))
+          : months.map(m => ({ month: m, value: R() })),
+        series: [{ key: 'value', label: tab.title, color: primary }],
+      },
+      {
+        id: `${tab.id}-chart2`, type: 'chart', title: 'Distribution', chartType: 'pie', span: 1, xKey: 'label',
+        rawChartData: [
+          { label: 'Positive', value: R(40, 35) },
+          { label: 'Neutral',  value: R(20, 20) },
+          { label: 'Negative', value: R(5, 20)  },
+        ],
+        series: [{ key: 'value', label: '%', color: primary }],
+      },
+      { id: `${tab.id}-insight`, type: 'insight', title: `${tab.title} Summary`, span: 3, content: `${brandName}'s ${tab.title.toLowerCase()} shows strong performance across the reporting period. Key metrics indicate positive momentum with room for strategic improvement in targeted areas.`, highlights: [`${tab.title} metrics trending positively`, 'Data-driven insights available', 'Comparative benchmarking active'] },
+    ],
+  }));
 
   return {
     version: 1,
     workflowId,
-    generatedAt: new Date().toISOString(),
+    lensId,
     theme: {
       brandName,
-      designStyle: 'Media Intelligence',
-      primaryColor: primaryColor || '#7C3AED',
+      designStyle: lensLabel,
+      primaryColor: primary,
       secondaryColor: '#1e1b4b',
       accentColor: '#A78BFA',
       backgroundColor: '#F8F7FC',
@@ -400,119 +818,18 @@ function buildFallbackDashboard(workflowId, brandName, dashboardType, primaryCol
       textMuted: '#6B7280',
       fontFamily: 'DM Serif Display',
       bodyFont: 'DM Sans',
-      chartPalette: [primaryColor || '#7C3AED', '#EC4899', '#3DD9D6', '#F59E0B', '#A78BFA'],
+      chartPalette: [primary, '#EC4899', '#3DD9D6', '#F59E0B', '#A78BFA'],
       cardBorderRadius: 12,
       shadowStyle: 'soft',
       cardStyle: 'elevated',
     },
-    storyboard: [
-      { id: 'executive', title: 'Executive Summary', subtitle: 'Key findings', icon: '⚡', layout: 'hero' },
-      { id: 'coverage', title: 'Media Coverage', subtitle: 'Volume & reach', icon: '📰', layout: '3col' },
-      { id: 'sentiment', title: 'Sentiment Analysis', subtitle: 'Brand perception', icon: '💬', layout: 'analytics' },
-      { id: 'narratives', title: 'Narrative Intelligence', subtitle: 'Emerging themes', icon: '🔍', layout: 'storytelling' },
-      { id: 'performance', title: 'Performance KPIs', subtitle: 'Impact metrics', icon: '📊', layout: '2col' },
-    ],
-    pages: [
-      {
-        tabId: 'executive',
-        heroConfig: { headline: `${brandName} Media Intelligence`, subline: `${dashboardType} — Reporting Period`, stat: '247', statLabel: 'Total Articles' },
-        widgets: [
-          { id: 'hero-1', type: 'hero-banner', title: `${brandName} Intelligence Report`, span: 3, headline: `${brandName} Media Intelligence`, subline: dashboardType },
-          { id: 'kpi-1', type: 'kpi-card', title: 'Total Articles', value: '247', label: 'Mentions', delta: '+12%', deltaPos: true, icon: '📰', span: 1 },
-          { id: 'kpi-2', type: 'kpi-card', title: 'Total Reach', value: '12.4M', label: 'Audience', delta: '+8%', deltaPos: true, icon: '👁️', span: 1 },
-          { id: 'kpi-3', type: 'kpi-card', title: 'Sentiment Score', value: '72%', label: 'Positive', delta: '+4pts', deltaPos: true, icon: '💚', span: 1 },
-          { id: 'chart-exec', type: 'chart', title: 'Coverage Overview', chartType: 'area', span: 3, xKey: 'month',
-            rawChartData: months.map((m) => ({ month: m, articles: R(), reach: R() * 1000 })),
-            series: [{ key: 'articles', label: 'Articles', color: primaryColor || '#7C3AED' }, { key: 'reach', label: 'Reach (K)', color: '#EC4899' }] },
-          { id: 'insight-exec', type: 'insight', title: 'Executive Summary', span: 3,
-            content: `${brandName} demonstrates strong media presence with 247 articles generating 12.4M in audience reach. Positive sentiment holds at 72%, reflecting effective brand management and favorable media relations throughout the reporting period.`,
-            highlights: ['Coverage up 12% month-over-month', 'Positive sentiment majority across all channels', 'Strong tier-1 media representation'] },
-        ],
-      },
-      {
-        tabId: 'coverage',
-        widgets: [
-          { id: 'kpi-cov-1', type: 'kpi-card', title: 'Online News', value: '142', label: 'Articles', delta: '+18%', deltaPos: true, icon: '🌐', span: 1 },
-          { id: 'kpi-cov-2', type: 'kpi-card', title: 'Print Media', value: '58', label: 'Articles', delta: '-3%', deltaPos: false, icon: '📄', span: 1 },
-          { id: 'kpi-cov-3', type: 'kpi-card', title: 'Broadcast', value: '47', label: 'Segments', delta: '+7%', deltaPos: true, icon: '📺', span: 1 },
-          { id: 'chart-cov-1', type: 'chart', title: 'Coverage by Channel', chartType: 'bar', span: 2, xKey: 'channel',
-            rawChartData: [{ channel: 'Online', value: 142 }, { channel: 'Print', value: 58 }, { channel: 'Broadcast', value: 47 }],
-            series: [{ key: 'value', label: 'Articles', color: primaryColor || '#7C3AED' }] },
-          { id: 'chart-cov-2', type: 'chart', title: 'Media Type Share', chartType: 'pie', span: 1, xKey: 'type',
-            rawChartData: [{ type: 'Online News', value: 45 }, { type: 'Print', value: 23 }, { type: 'Broadcast', value: 19 }, { type: 'Social', value: 13 }],
-            series: [{ key: 'value', label: 'Share %', color: primaryColor || '#7C3AED' }] },
-          { id: 'chart-cov-3', type: 'chart', title: 'Monthly Volume Trend', chartType: 'line', span: 3, xKey: 'month',
-            rawChartData: months.map((m, i) => ({ month: m, articles: 30 + i * 8 + Math.floor(Math.random() * 10) })),
-            series: [{ key: 'articles', label: 'Articles', color: primaryColor || '#7C3AED' }] },
-        ],
-      },
-      {
-        tabId: 'sentiment',
-        widgets: [
-          { id: 'kpi-sent-1', type: 'kpi-card', title: 'Positive', value: '72%', label: 'Sentiment', delta: '+4pts', deltaPos: true, icon: '✅', span: 1 },
-          { id: 'kpi-sent-2', type: 'kpi-card', title: 'Neutral', value: '18%', label: 'Sentiment', delta: '-2pts', deltaPos: false, icon: '➡️', span: 1 },
-          { id: 'kpi-sent-3', type: 'kpi-card', title: 'Negative', value: '10%', label: 'Sentiment', delta: '-2pts', deltaPos: true, icon: '⚠️', span: 1 },
-          { id: 'chart-sent-1', type: 'chart', title: 'Sentiment Trend', chartType: 'area', span: 2, xKey: 'month',
-            rawChartData: months.map((m) => ({ month: m, positive: R(), neutral: Math.floor(R() * 0.4), negative: Math.floor(R() * 0.2) })),
-            series: [{ key: 'positive', label: 'Positive', color: '#16a34a' }, { key: 'neutral', label: 'Neutral', color: '#9ca3af' }, { key: 'negative', label: 'Negative', color: '#dc2626' }] },
-          { id: 'chart-sent-2', type: 'chart', title: 'Sentiment Distribution', chartType: 'pie', span: 1, xKey: 'label',
-            rawChartData: [{ label: 'Positive', value: 72 }, { label: 'Neutral', value: 18 }, { label: 'Negative', value: 10 }],
-            series: [{ key: 'value', label: '%', color: '#16a34a' }] },
-          { id: 'insight-sent', type: 'insight', title: 'Sentiment Analysis', span: 3,
-            content: `${brandName}'s sentiment profile is predominantly positive at 72%, with negative coverage accounting for only 10% of total mentions. The trend shows consistent improvement over the reporting period.`,
-            highlights: ['Positive sentiment 72% — above industry average', 'Negative coverage concentrated in financial topics', 'Crisis communications maintained brand equity'] },
-        ],
-      },
-      {
-        tabId: 'narratives',
-        widgets: [
-          { id: 'narrative-intro', type: 'narrative', title: 'Key Narratives', span: 3, content: `Five dominant narratives are shaping ${brandName}'s media presence this period. Innovation leadership drives the most positive coverage while competitive dynamics and market positioning generate ongoing discussion.`, highlights: [] },
-          { id: 'chart-narr-1', type: 'chart', title: 'Narrative Share of Voice', chartType: 'bar', span: 2, xKey: 'theme',
-            rawChartData: [{ theme: 'Innovation', count: 68 }, { theme: 'Market Position', count: 45 }, { theme: 'ESG', count: 38 }, { theme: 'Financial', count: 32 }, { theme: 'Partnerships', count: 25 }],
-            series: [{ key: 'count', label: 'Articles', color: primaryColor || '#7C3AED' }] },
-          { id: 'kpi-narr-1', type: 'kpi-card', title: 'Active Narratives', value: '5', label: 'Key themes', delta: '+2 new', deltaPos: true, icon: '💡', span: 1 },
-          { id: 'chart-narr-2', type: 'chart', title: 'Narrative Velocity', chartType: 'line', span: 3, xKey: 'month',
-            rawChartData: months.map((m) => ({ month: m, innovation: R(), market: Math.floor(R() * 0.8), esg: Math.floor(R() * 0.6) })),
-            series: [{ key: 'innovation', label: 'Innovation', color: primaryColor || '#7C3AED' }, { key: 'market', label: 'Market', color: '#EC4899' }, { key: 'esg', label: 'ESG', color: '#3DD9D6' }] },
-        ],
-      },
-      {
-        tabId: 'performance',
-        widgets: [
-          { id: 'chart-perf-1', type: 'chart', title: 'Reach & Engagement', chartType: 'area', span: 2, xKey: 'month',
-            rawChartData: months.map((m, i) => ({ month: m, reach: (1000 + i * 200) * 1000, engagement: R() * 500 })),
-            series: [{ key: 'reach', label: 'Reach', color: primaryColor || '#7C3AED' }, { key: 'engagement', label: 'Engagement', color: '#F59E0B' }] },
-          { id: 'chart-perf-2', type: 'chart', title: 'Score Tracker', chartType: 'radialBar', span: 1, xKey: 'label',
-            rawChartData: [{ label: 'Sentiment', value: 72 }, { label: 'Reach', value: 84 }, { label: 'Engagement', value: 65 }],
-            series: [{ key: 'value', label: 'Score', color: primaryColor || '#7C3AED' }] },
-          { id: 'insight-perf', type: 'insight', title: 'Performance Summary', span: 3,
-            content: `${brandName}'s media performance remains strong across key metrics. Reach has grown 8% month-over-month while engagement rates hold above sector benchmarks. The platform mix is shifting toward higher-quality digital outlets.`,
-            highlights: ['Reach +8% MoM', 'Tier-1 coverage 34% of total', 'EMV estimated at $2.8M'] },
-        ],
-      },
-    ],
+    storyboard,
+    pages,
     executiveInsights: {
-      summary: `${brandName} maintains a strong media presence with positive momentum across all key metrics during the reporting period.`,
-      keyFindings: ['Coverage volume up 12% month-over-month', 'Positive sentiment at 72% — 8pts above sector average', 'Innovation narrative dominates with 27% share of voice'],
-      recommendations: ['Amplify ESG narrative to capitalise on positive reception', 'Address financial coverage through targeted communications'],
-      risks: ['Competitive narratives gaining momentum in trade media'],
+      summary: `${brandName}'s ${lensLabel} dashboard reflects the current reporting period performance across all tracked metrics.`,
+      keyFindings: [`${lensLabel} active for ${brandName}`, 'Coverage tracking operational', 'Real-time data pipeline connected'],
+      recommendations: ['Continue monitoring key channels', 'Expand competitive tracking scope'],
+      risks: ['Monitor for unexpected sentiment shifts'],
     },
   };
-}
-
-// ── Ensure all chart widgets have rawChartData ────────────────────────────────
-function ensureChartData(config, brandName) {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-  for (const page of config.pages ?? []) {
-    for (const widget of page.widgets ?? []) {
-      if (widget.type === 'chart' && (!widget.rawChartData || widget.rawChartData.length === 0)) {
-        widget.rawChartData = months.map((m) => ({ [widget.xKey ?? 'label']: m, value: Math.floor(Math.random() * 80 + 20) }));
-        if (!widget.series?.length) {
-          widget.series = [{ key: 'value', label: widget.title ?? 'Value', color: config.theme?.primaryColor ?? '#7C3AED' }];
-        }
-        if (!widget.xKey) widget.xKey = Object.keys(widget.rawChartData[0])[0];
-      }
-    }
-  }
-  return config;
 }

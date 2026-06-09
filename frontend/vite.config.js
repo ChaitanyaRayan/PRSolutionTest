@@ -13,20 +13,21 @@ export default defineConfig({
       },
       // Real Media Intelligence backend — proxied in dev so VITE_API_BASE_URL can be omitted
       // In production, set VITE_API_BASE_URL to your real backend URL
-      '/workflow': {
-        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:3001',
+      // Match /workflow and /workflow/... but NOT /workflows (frontend route)
+      '^/workflow(/.*)?$': {
+        target: process.env.VITE_API_BASE_URL || 'http://localhost:3001',
         changeOrigin: true,
       },
       '/upload': {
-        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:3001',
+        target: process.env.VITE_API_BASE_URL || 'http://localhost:3001',
         changeOrigin: true,
       },
       '/review': {
-        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:3001',
+        target: process.env.VITE_API_BASE_URL || 'http://localhost:3001',
         changeOrigin: true,
       },
       '/charts': {
-        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:3001',
+        target: process.env.VITE_API_BASE_URL || 'http://localhost:3001',
         changeOrigin: true,
       },
       "/ws": {

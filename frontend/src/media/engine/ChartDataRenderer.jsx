@@ -20,15 +20,11 @@
 
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import {
-  BarChart, Bar, LineChart, Line, AreaChart, Area,
-  PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-} from 'recharts';
 import { TrendingUp, TrendingDown, Sparkles } from 'lucide-react';
+import { DynamicChart, SERIES_COLORS } from './charts/DynamicChart';
 
 // ── Palette ───────────────────────────────────────────────────────────────────
-const DEFAULT_PALETTE = ['#7C3AED', '#EC4899', '#3DD9D6', '#F59E0B', '#A78BFA', '#34D399', '#F87171', '#60A5FA'];
+const DEFAULT_PALETTE = SERIES_COLORS;
 
 function buildPalette(template) {
   if (!template?.palette?.length) return DEFAULT_PALETTE;
@@ -161,116 +157,39 @@ function normaliseResponse(raw) {
   return arr.map(normaliseItem);
 }
 
-// ── Custom Tooltip ────────────────────────────────────────────────────────────
-function ChartTooltip({ active, payload, label, unit }) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="cdr-tooltip">
-      {label && <div className="cdr-tooltip-label">{label}</div>}
-      {payload.map((p, i) => (
-        <div key={i} className="cdr-tooltip-row">
-          <span className="cdr-tooltip-dot" style={{ background: p.color }} />
-          <span className="cdr-tooltip-key">{p.name}:</span>
-          <span className="cdr-tooltip-val">{fmtNum(p.value)}{unit ? ` ${unit}` : ''}</span>
-        </div>
-      ))}
-    </div>
-  );
+// ── Chart components — all delegate to DynamicChart ──────────────────────────
+
+// Map normalised chartType → DynamicChart chartType
+function toDynamicType(chartType) {
+  if (chartType === 'donut') return 'donut';
+  if (chartType === 'pie')   return 'pie';
+  return chartType; // bar, line, area, table, kpi pass through
 }
 
-// ── Chart components ──────────────────────────────────────────────────────────
-function BarChartWidget({ item, palette }) {
-  const { data, seriesKeys, unit } = item;
-  const tickFmt = (v) => typeof v === 'number' ? fmtNum(v) : v;
+function ChartWidget({ item, palette }) {
+  const { data, seriesKeys, chartType } = item;
+  if (!data?.length) return <div className="cdr-empty">No data available</div>;
 
-  return (
-    <ResponsiveContainer width="100%" height={260}>
-      <BarChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 24 }} barCategoryGap="25%">
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" vertical={false} />
-        <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#888' }} axisLine={false} tickLine={false}
-          interval={0} angle={data.length > 6 ? -35 : 0} textAnchor={data.length > 6 ? 'end' : 'middle'} />
-        <YAxis tickFormatter={tickFmt} tick={{ fontSize: 11, fill: '#888' }} axisLine={false} tickLine={false} width={44} />
-        <Tooltip content={<ChartTooltip unit={unit} />} />
-        {seriesKeys.length > 1 && <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />}
-        {seriesKeys.map((k, i) => (
-          <Bar key={k} dataKey={k} fill={palette[i % palette.length]} radius={[4, 4, 0, 0]} maxBarSize={52} />
-        ))}
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
-function LineChartWidget({ item, palette }) {
-  const { data, seriesKeys, unit } = item;
-  return (
-    <ResponsiveContainer width="100%" height={260}>
-      <LineChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-        <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#888' }} axisLine={false} tickLine={false} />
-        <YAxis tickFormatter={fmtNum} tick={{ fontSize: 11, fill: '#888' }} axisLine={false} tickLine={false} width={44} />
-        <Tooltip content={<ChartTooltip unit={unit} />} />
-        {seriesKeys.length > 1 && <Legend wrapperStyle={{ fontSize: 11 }} />}
-        {seriesKeys.map((k, i) => (
-          <Line key={k} type="monotone" dataKey={k} stroke={palette[i % palette.length]}
-            strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-        ))}
-      </LineChart>
-    </ResponsiveContainer>
-  );
-}
-
-function AreaChartWidget({ item, palette }) {
-  const { data, seriesKeys, unit } = item;
-  return (
-    <ResponsiveContainer width="100%" height={260}>
-      <AreaChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-        <defs>
-          {seriesKeys.map((k, i) => (
-            <linearGradient key={k} id={`ag-${i}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%"  stopColor={palette[i % palette.length]} stopOpacity={0.3} />
-              <stop offset="95%" stopColor={palette[i % palette.length]} stopOpacity={0.02} />
-            </linearGradient>
-          ))}
-        </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" vertical={false} />
-        <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#888' }} axisLine={false} tickLine={false} />
-        <YAxis tickFormatter={fmtNum} tick={{ fontSize: 11, fill: '#888' }} axisLine={false} tickLine={false} width={44} />
-        <Tooltip content={<ChartTooltip unit={unit} />} />
-        {seriesKeys.length > 1 && <Legend wrapperStyle={{ fontSize: 11 }} />}
-        {seriesKeys.map((k, i) => (
-          <Area key={k} type="monotone" dataKey={k}
-            stroke={palette[i % palette.length]} strokeWidth={2.5}
-            fill={`url(#ag-${i})`} />
-        ))}
-      </AreaChart>
-    </ResponsiveContainer>
-  );
-}
-
-function DonutChartWidget({ item, palette }) {
-  const { data, unit } = item;
-  const RADIAN = Math.PI / 180;
-  const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-    if (percent < 0.05) return null;
-    const r = innerRadius + (outerRadius - innerRadius) * 0.55;
-    return (
-      <text x={cx + r * Math.cos(-midAngle * RADIAN)} y={cy + r * Math.sin(-midAngle * RADIAN)}
-        fill="#fff" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={700}>
-        {`${(percent * 100).toFixed(0)}%`}
-      </text>
-    );
+  // Build widget shape expected by DynamicChart
+  const widget = {
+    id:           item.title ?? 'cdr',
+    chartType:    toDynamicType(chartType),
+    rawChartData: data,
+    xKey:         'name',
+    series:       seriesKeys.map((k, i) => ({
+      key:   k,
+      label: k,
+      color: palette[i % palette.length],
+    })),
   };
+
   return (
-    <ResponsiveContainer width="100%" height={260}>
-      <PieChart>
-        <Pie data={data} cx="50%" cy="50%" innerRadius={55} outerRadius={95}
-          dataKey="value" nameKey="name" labelLine={false} label={renderLabel}>
-          {data.map((_, i) => <Cell key={i} fill={palette[i % palette.length]} />)}
-        </Pie>
-        <Tooltip formatter={(v) => [fmtNum(v) + (unit ? ` ${unit}` : ''), '']} />
-        <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
-      </PieChart>
-    </ResponsiveContainer>
+    <DynamicChart
+      widget={widget}
+      theme={{ chartPalette: palette }}
+      height={260}
+      dateInsights={item.dateInsights ?? []}
+    />
   );
 }
 
@@ -359,14 +278,12 @@ function ChartCard({ item, palette, tplPrimary, index }) {
         )}
 
         <div className="cdr-chart-area">
-          {chartType === 'bar'   && data.length > 0 && <BarChartWidget   item={item} palette={palette} />}
-          {chartType === 'line'  && data.length > 0 && <LineChartWidget  item={item} palette={palette} />}
-          {chartType === 'area'  && data.length > 0 && <AreaChartWidget  item={item} palette={palette} />}
-          {(chartType === 'donut' || chartType === 'pie') && data.length > 0 && <DonutChartWidget item={item} palette={palette} />}
-          {chartType === 'table' && <TableWidget item={item} />}
-          {!data.length && chartType !== 'table' && chartType !== 'kpi' && (
-            <div className="cdr-empty">No data available for this chart</div>
-          )}
+          {chartType === 'table'
+            ? <TableWidget item={item} />
+            : data.length > 0
+              ? <ChartWidget item={item} palette={palette} />
+              : <div className="cdr-empty">No data available for this chart</div>
+          }
         </div>
       </div>
     </motion.div>
