@@ -1,74 +1,98 @@
 /**
- * WorkflowDetailPage — Dashboard selection screen for a saved workflow.
+ * WorkflowDetailPage — Shows all lens branches for a saved workflow.
  * Route: /workflows/:workflowId
  *
- * Fetches the workflow, then renders dashboard cards for each dashboardType.
- * Clicking a card navigates to the existing DashboardEngine via /media/dashboard/lens/:dashId.
+ * API response shape (GET /workflow/:id):
+ *   workflow.workflow.branches[].analysis.lens_details = { id, label }
  */
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  ArrowLeft, Clock, BarChart2, Eye, Layers, Zap, Star, ArrowRight,
-  TrendingUp, TrendingDown,
+  ArrowLeft, Clock, BarChart2, Layers, Zap, Star,
+  ArrowRight, Activity, FileSearch,
 } from 'lucide-react';
-import { projectsApi }    from '../api/client';
-import { DASHBOARDS }     from '../constants/dashboards';
-import { HTML_TEMPLATES } from '../constants/templates';
+import { projectsApi } from '../api/client';
 
-// ── Dashboard metadata (icons, hero images, descriptions) ────────────────────
+// ── Lens metadata keyed by lens label (lowercased) ───────────────────────────
 
-const DASH_META = {
-  intelligence: {
-    icon: Eye,
-    heroImg: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&q=80',
-    description: 'Track total article volume, source distribution, and coverage velocity across all media channels.',
-    keyMetric: 'Total Articles',
-    trend: '+12.3%',
-    trendUp: true,
-  },
-  monitoring: {
+const LENS_META = {
+  'media measurement': {
     icon: BarChart2,
     heroImg: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&q=80',
-    description: 'Monitor brand mentions, sentiment shifts, and emerging media narratives in real-time.',
-    keyMetric: 'Impact Index',
-    trend: '+4.1 pts',
-    trendUp: true,
+    description: 'Track total article volume, source distribution, and coverage velocity across all media channels.',
+    starters: [
+      { icon: '📊', text: 'What is the overall sentiment picture?' },
+      { icon: '🏆', text: 'Which source has the strongest PR performance?' },
+      { icon: '🔥', text: 'What topics are driving the most media coverage?' },
+      { icon: '📱', text: 'Break down the social vs traditional media coverage split' },
+    ],
   },
-  narrative: {
+  'media monitoring': {
+    icon: Activity,
+    heroImg: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&q=80',
+    description: 'Monitor brand mentions, sentiment shifts, and emerging media narratives in real-time.',
+    starters: [
+      { icon: '📈', text: 'Show me sentiment trends over the last 7 days' },
+      { icon: '⚠️', text: 'What are the top risk signals this week?' },
+      { icon: '🎯', text: 'Which journalists covered us the most?' },
+      { icon: '🔍', text: 'Compare brand vs competitor coverage volume' },
+    ],
+  },
+  'narrative intelligence': {
     icon: Layers,
     heroImg: 'https://images.unsplash.com/photo-1553484771-047a44eee27a?w=600&q=80',
     description: 'Identify active narratives, track their lifecycle, and understand thematic clustering.',
-    keyMetric: 'Active Narratives',
-    trend: '+3 new',
-    trendUp: true,
+    starters: [
+      { icon: '💡', text: 'What narratives are gaining traction?' },
+      { icon: '📉', text: 'Which themes are declining in coverage?' },
+      { icon: '🔗', text: 'How do our key messages land in coverage?' },
+      { icon: '🌐', text: 'Show me the narrative map this month' },
+    ],
   },
-  pr: {
+  'pr impact': {
     icon: Zap,
     heroImg: 'https://images.unsplash.com/photo-1611926653458-09294b3142bf?w=600&q=80',
     description: 'Measure earned media value, PR campaign ROI, and spokesperson effectiveness.',
-    keyMetric: 'EMV This Month',
-    trend: '−2.1%',
-    trendUp: false,
+    starters: [
+      { icon: '💰', text: 'What is our earned media value this quarter?' },
+      { icon: '📣', text: 'Which campaign drove the highest impact?' },
+      { icon: '🎙️', text: 'How effective are our spokespeople?' },
+      { icon: '📰', text: 'Show PR impact score by outlet tier' },
+    ],
   },
-  reputation: {
+  'reputation intelligence': {
     icon: Star,
     heroImg: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&q=80',
-    description: 'Score and track brand reputation across dimensions including trust, quality, and advocacy.',
-    keyMetric: 'Reputation Score',
-    trend: '+1.2',
-    trendUp: true,
+    description: 'Score and track brand reputation across trust, quality, and advocacy dimensions.',
+    starters: [
+      { icon: '⭐', text: 'What is our current reputation score?' },
+      { icon: '📊', text: 'How has trust perception changed this month?' },
+      { icon: '🆚', text: 'Compare our reputation vs top competitors' },
+      { icon: '🔔', text: 'Flag any emerging reputation risks' },
+    ],
   },
 };
 
-const LENS_ID_MAP = {
-  intelligence: 1,
-  monitoring:   2,
-  narrative:    3,
-  pr:           4,
-  reputation:   5,
-};
+const TINTS = [
+  '#7C3AED', '#1192e8', '#007d79', '#eb6200', '#d02670', '#d2a106',
+];
+
+function getLensMeta(label) {
+  if (!label) return null;
+  const key = label.toLowerCase();
+  return (
+    LENS_META[key] ??
+    Object.entries(LENS_META).find(([k]) => key.includes(k) || k.includes(key))?.[1] ??
+    {
+      icon: FileSearch,
+      heroImg: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&q=80',
+      description: `${label} analysis and intelligence dashboard.`,
+      starters: [],
+    }
+  );
+}
 
 function fmtDate(iso) {
   if (!iso) return '—';
@@ -91,19 +115,17 @@ export default function WorkflowDetailPage() {
     projectsApi.get(workflowId)
       .then(setWorkflow)
       .catch((e) => setError(e.message))
-      .finally(()  => setLoading(false));
+      .finally(() => setLoading(false));
   }, [workflowId]);
 
-  // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="wf-detail-center">
-        <div className="mi-spin" />
+        <div className="mi-spin" style={{ width: 28, height: 28, border: '3px solid var(--mi-border-md)', borderTopColor: 'var(--mi-primary)', borderRadius: '50%' }} />
       </div>
     );
   }
 
-  // ── Error ──────────────────────────────────────────────────────────────────
   if (error || !workflow) {
     return (
       <div className="wf-detail-center">
@@ -117,110 +139,81 @@ export default function WorkflowDetailPage() {
     );
   }
 
-  // ── Derived values ─────────────────────────────────────────────────────────
-  const template   = HTML_TEMPLATES.find((t) => t.id === workflow.templateId);
-  const tplPrimary = template?.primaryColor ?? '#7C3AED';
-  const tplBg      = template?.bgColor      ?? '#f8f9fa';
-  const dashTypes  = workflow.dashboardTypes ?? [];
-  const dashboards = DASHBOARDS.filter((d) => dashTypes.includes(d.id));
-  const now        = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  // Extract branches from the API response
+  const branches = workflow.workflow?.branches ?? [];
+  const clientName = workflow.workflow?.branches?.[0]?.assembly?.branding?.client_name
+    ?? workflow.name
+    ?? 'Workflow';
+  const apiWorkflowId = workflow.id ?? workflowId;
 
-  // The actual workflowId used by the backend (may differ from URL param)
-  const apiWorkflowId = workflow.workflowId ?? workflowId;
-
-  function openDashboard(dashId) {
-    // lensId from workflow record; fall back to per-dashboard default
-    const lensId = workflow.lensId ?? String(LENS_ID_MAP[dashId] ?? 1);
+  function openLens(branch, branchIndex) {
+    const lensId = branch.analysis?.lens_details?.id ?? branchIndex + 1;
     navigate(
-      `/media/dashboard/lens/${dashId}` +
-      `?workflow_id=${apiWorkflowId}&lens=${lensId}&dash=${dashId}` +
-      `&from=workflows&wf=${workflowId}`,
+      `/media/dashboard?workflow_id=${apiWorkflowId}&lens_id=${lensId}`
     );
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="dash-home" style={{ '--dash-primary': tplPrimary, background: tplBg }}>
+    <div className="wf-detail-page">
 
-      {/* ── Back navigation ─────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, x: -8 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.3 }}
-        style={{ padding: '20px 32px 0' }}
-      >
+      {/* ── Back ───────────────────────────────────────────────── */}
+      <div className="wf-detail-topbar">
         <button className="wf-back-btn" onClick={() => navigate('/workflows')}>
-          <ArrowLeft size={14} />
-          All Workflows
+          <ArrowLeft size={14} /> All Workflows
         </button>
-      </motion.div>
+        <div className="wf-detail-meta">
+          <Clock size={12} />
+          <span>{fmtDate(workflow.created_at ?? workflow.createdAt)}</span>
+          <span className="wf-detail-id">#{apiWorkflowId}</span>
+        </div>
+      </div>
 
-      {/* ── Workspace Header ─────────────────────────────────────── */}
+      {/* ── Header ─────────────────────────────────────────────── */}
       <motion.div
-        className="dash-home-header"
-        initial={{ opacity: 0, y: -12 }}
+        className="wf-detail-header"
+        initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.06 }}
+        transition={{ duration: 0.35 }}
       >
-        <div className="dash-home-brand">
-          <div className="dash-home-brand-dot" style={{ background: tplPrimary }} />
-          <div>
-            <h1 className="dash-home-brand-name">{workflow.name}</h1>
-            <p className="dash-home-brand-sub">
-              Dashboard Workspace · {dashboards.length} active lens{dashboards.length !== 1 ? 'es' : ''}
-            </p>
-          </div>
-        </div>
-        <div className="dash-home-meta">
-          <span className="dash-home-date">
-            <Clock size={12} />
-            Updated {fmtDate(workflow.updatedAt)}
-          </span>
-          {template && (
-            <span
-              className="dash-home-tpl-badge"
-              style={{ borderColor: `${tplPrimary}44`, color: tplPrimary }}
-            >
-              {template.name}
-            </span>
-          )}
+        <div className="wf-detail-header-left">
+          <h1 className="wf-detail-title">{clientName}</h1>
+          <p className="wf-detail-subtitle">
+            {branches.length} analysis lens{branches.length !== 1 ? 'es' : ''} · Select a dashboard to explore
+          </p>
         </div>
       </motion.div>
 
-      {/* ── Divider ──────────────────────────────────────────────── */}
-      <div className="dash-home-divider" style={{ background: `${tplPrimary}22` }} />
-
-      {/* ── No dashboards ─────────────────────────────────────────── */}
-      {dashboards.length === 0 && (
+      {/* ── Empty ──────────────────────────────────────────────── */}
+      {branches.length === 0 && (
         <div className="wf-empty" style={{ paddingTop: 60 }}>
           <Layers size={40} strokeWidth={1.2} style={{ color: 'var(--mi-text-3)' }} />
-          <p className="wf-empty-msg">No dashboards found for this workflow.</p>
-          <button className="mi-btn mi-btn--ghost mi-btn--sm" onClick={() => navigate('/workflows')}>
-            Back to Workflows
-          </button>
+          <p className="wf-empty-msg">No analysis branches found for this workflow.</p>
         </div>
       )}
 
-      {/* ── Dashboard Cards ──────────────────────────────────────── */}
-      {dashboards.length > 0 && (
+      {/* ── Lens cards ─────────────────────────────────────────── */}
+      {branches.length > 0 && (
         <motion.div
-          className="dash-home-grid"
-          initial="initial"
-          animate="animate"
-          variants={{ animate: { transition: { staggerChildren: 0.08 } } }}
+          className="wf-lens-grid"
+          initial="hidden"
+          animate="visible"
+          variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
         >
-          {dashboards.map((dash) => {
-            const meta = DASH_META[dash.id] ?? {};
-            const Icon = meta.icon ?? BarChart2;
+          {branches.map((branch, i) => {
+            const lens   = branch.analysis?.lens_details ?? {};
+            const label  = lens.label ?? `Lens ${i + 1}`;
+            const meta   = getLensMeta(label);
+            const tint   = TINTS[i % TINTS.length];
+            const Icon   = meta.icon;
             return (
-              <DashCard
-                key={dash.id}
-                dash={dash}
+              <LensCard
+                key={i}
+                label={label}
                 meta={meta}
                 Icon={Icon}
-                tplPrimary={tplPrimary}
-                now={now}
-                onOpen={() => openDashboard(dash.id)}
+                tint={tint}
+                branch={branch}
+                onOpen={() => openLens(branch, i)}
               />
             );
           })}
@@ -230,68 +223,72 @@ export default function WorkflowDetailPage() {
   );
 }
 
-// ── DashCard ──────────────────────────────────────────────────────────────────
+// ── LensCard ──────────────────────────────────────────────────────────────────
 
-function DashCard({ dash, meta, Icon, tplPrimary, now, onOpen }) {
+function LensCard({ label, meta, Icon, tint, branch, onOpen }) {
+  const competitors = branch.analysis?.competitors ?? [];
+  const hasSkill    = !!branch.analysis?.skill_prompt;
+
   return (
     <motion.div
+      className="wf-lens-card"
       variants={{
-        initial: { opacity: 0, y: 28 },
-        animate: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } },
+        hidden:   { opacity: 0, y: 24 },
+        visible:  { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } },
       }}
-      className="dash-home-card"
-      style={{ '--card-tint': dash.tint, '--card-primary': tplPrimary }}
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
     >
-      {/* Hero image */}
-      <div className="dash-home-card-hero">
-        <img src={meta.heroImg} alt={dash.name} className="dash-home-card-img" loading="lazy" />
-        <div
-          className="dash-home-card-overlay"
-          style={{ background: `linear-gradient(160deg, ${dash.tint}cc 0%, ${tplPrimary}88 100%)` }}
-        />
-        <div className="dash-home-card-num">{dash.num}</div>
-        <div className="dash-home-card-icon">
-          <Icon size={22} color="#fff" strokeWidth={1.5} />
+      {/* Hero */}
+      <div className="wf-lens-hero" style={{ background: `linear-gradient(160deg, ${tint}dd 0%, ${tint}88 100%)` }}>
+        <img src={meta.heroImg} alt={label} className="wf-lens-hero-img" loading="lazy" />
+        <div className="wf-lens-hero-overlay" style={{ background: `linear-gradient(160deg, ${tint}cc 0%, ${tint}55 100%)` }} />
+        <div className="wf-lens-hero-icon">
+          <Icon size={24} color="#fff" strokeWidth={1.5} />
         </div>
+        <div className="wf-lens-hero-label">{label}</div>
       </div>
 
-      {/* Card body */}
-      <div className="dash-home-card-body">
-        <div className="dash-home-card-top">
-          <h3 className="dash-home-card-title">{dash.name}</h3>
-          <div className={`dash-home-card-trend ${meta.trendUp ? 'dash-home-card-trend--up' : 'dash-home-card-trend--down'}`}>
-            {meta.trendUp ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
-            {meta.trend}
+      {/* Body */}
+      <div className="wf-lens-body">
+        <p className="wf-lens-desc">{meta.description}</p>
+
+        {/* Starters */}
+        {meta.starters.length > 0 && (
+          <div className="wf-lens-starters">
+            <p className="wf-lens-starters-label">What would you like to know?</p>
+            <div className="wf-lens-starters-grid">
+              {meta.starters.map((s, i) => (
+                <button key={i} className="wf-lens-starter-btn" onClick={onOpen}>
+                  <span className="wf-lens-starter-icon">{s.icon}</span>
+                  <span>{s.text}</span>
+                </button>
+              ))}
+            </div>
           </div>
+        )}
+
+        {/* Tags */}
+        <div className="wf-lens-tags">
+          {competitors.map((c) => (
+            <span key={c} className="wf-lens-tag" style={{ borderColor: `${tint}44`, color: tint, background: `${tint}10` }}>
+              vs {c}
+            </span>
+          ))}
+          {hasSkill && (
+            <span className="wf-lens-tag" style={{ borderColor: `${tint}44`, color: tint, background: `${tint}10` }}>
+              Custom Prompt
+            </span>
+          )}
         </div>
-        <p className="dash-home-card-desc">{meta.description}</p>
-        <div className="dash-home-card-kpi">
-          <span className="dash-home-card-kpi-label">{meta.keyMetric}</span>
-          <div className="dash-home-card-kpi-bar">
-            <div
-              className="dash-home-card-kpi-fill"
-              style={{
-                background: `linear-gradient(90deg, ${dash.tint}, ${tplPrimary})`,
-                width: '68%',
-              }}
-            />
-          </div>
-        </div>
-        <div className="dash-home-card-footer">
-          <span className="dash-home-card-updated">
-            <Clock size={10} />
-            Updated {now}
-          </span>
-          <button
-            className="dash-home-card-btn"
-            onClick={onOpen}
-            style={{ background: dash.tint, borderColor: dash.tint }}
-          >
-            Open Dashboard
-            <ArrowRight size={12} />
-          </button>
-        </div>
+
+        {/* CTA */}
+        <button
+          className="wf-lens-open-btn"
+          style={{ background: tint }}
+          onClick={onOpen}
+        >
+          Open Dashboard <ArrowRight size={13} />
+        </button>
       </div>
     </motion.div>
   );

@@ -1,75 +1,68 @@
 /**
  * Stage7Dashboard — Entry point for the dashboard experience.
- *
- * Decision tree:
- *  - If multiple dashboards were selected → show DashboardHomepage (workspace)
- *  - If a specific lens is requested via ?dash= param → open that lens' DashboardEngine
- *  - If single dashboard selected → open DashboardEngine directly
- *
- * Retrieval uses BOTH workflowId AND lensId per the new API spec.
+ * Routes to PremiumWorkspace (tabbed: Dashboard View | AI Conversation)
  */
 
 import React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useMediaStore } from '../store/mediaStore';
-import DashboardHomepage from './DashboardHomepage';
-import DashboardEngine   from '../engine/DashboardEngine';
+import { useMediaStore }    from '../store/mediaStore';
+import { HTML_TEMPLATES }   from '../constants/templates';
+import PremiumWorkspace     from '../engine/PremiumWorkspace';
+import DashboardHomepage    from './DashboardHomepage';
 
 export default function Stage7Dashboard() {
   const navigate       = useNavigate();
   const [searchParams] = useSearchParams();
+  const store          = useMediaStore();
 
-  const store = useMediaStore();
-
-  // Support both store state and URL query params
   const workflowId = searchParams.get('workflow_id') ?? store.workflowId;
   const lensId     = searchParams.get('lens')        ?? store.lensId;
-  const dashId     = searchParams.get('dash');       // specific lens to open
+  const dashId     = searchParams.get('dash');
   const brandName  = store.brandName;
-  const template   = store.selectedTemplate;
+
+  let template = store.selectedTemplate;
+  if (!template) {
+    template = HTML_TEMPLATES[Math.floor(Math.random() * HTML_TEMPLATES.length)];
+    store.setSelectedTemplate(template);
+  }
 
   const selectedDashboards = store.selectedDashboards ?? [];
   const isMulti = selectedDashboards.length > 1;
 
   if (!workflowId) {
     return (
-      <div className="mi-stage">
-        <p style={{ color: 'var(--mi-text-2)' }}>
-          No workflow found.{' '}
-          <button className="mi-btn mi-btn--ghost mi-btn--sm" onClick={() => navigate('/media/upload')}>
-            Start over
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'70vh', fontFamily:'DM Sans, system-ui, sans-serif' }}>
+        <div style={{ textAlign:'center' }}>
+          <p style={{ color:'#737888', marginBottom:14, fontSize:15 }}>No workflow found.</p>
+          <button
+            onClick={() => navigate('/media/upload')}
+            style={{ padding:'8px 18px', borderRadius:8, border:'none', background:'linear-gradient(135deg,#5B5BD6,#818CF8)', color:'#fff', fontSize:13, fontWeight:600, cursor:'pointer' }}>
+            ← Start a new workflow
           </button>
-        </p>
+        </div>
       </div>
     );
   }
 
-  // A specific dashboard lens was clicked from the homepage
   if (dashId) {
-    const from   = searchParams.get('from');
+    const from    = searchParams.get('from');
     const wfParam = searchParams.get('wf');
     return (
-      <DashboardEngine
+      <PremiumWorkspace
         workflowId={workflowId}
         lensId={lensId}
         brandName={brandName}
         template={template}
         dashboardId={dashId}
         onBack={() => {
-          // If opened from the Workflows hub, go back to the workflow detail page
-          if (from === 'workflows' && wfParam) {
-            navigate(`/workflows/${wfParam}`);
-          } else if (isMulti) {
-            navigate(`/media/dashboard?workflow_id=${workflowId}&lens=${lensId}`);
-          } else {
-            navigate(-1);
-          }
+          if (from === 'workflows' && wfParam) navigate(`/workflows/${wfParam}`);
+          else if (isMulti) navigate(`/media/dashboard?workflow_id=${workflowId}&lens=${lensId}`);
+          else navigate(-1);
         }}
       />
     );
   }
 
-  // Multi-dashboard → show workspace homepage
   if (isMulti) {
     return (
       <DashboardHomepage
@@ -81,13 +74,13 @@ export default function Stage7Dashboard() {
     );
   }
 
-  // Single dashboard → go straight to engine
   return (
-    <DashboardEngine
+    <PremiumWorkspace
       workflowId={workflowId}
       lensId={lensId}
       brandName={brandName}
       template={template}
+      dashboardId={selectedDashboards[0] ?? 'intelligence'}
       onBack={() => navigate(-1)}
     />
   );

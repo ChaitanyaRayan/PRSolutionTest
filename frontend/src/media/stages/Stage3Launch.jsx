@@ -10,6 +10,7 @@ import { projectsApi, uploadsApi } from '../api/client';
 import { useWorkflowWS } from '../hooks/useWorkflowWS';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { DASHBOARDS, DASHBOARD_MAP } from '../constants/dashboards';
+import { HTML_TEMPLATES } from '../constants/templates';
 
 export default function Stage3Launch() {
   const navigate = useNavigate();
@@ -57,9 +58,17 @@ export default function Stage3Launch() {
     }
   }
 
-  function goToReview() {
-    navigate(`/media/review?workflow_id=${workflowId}&lens=${store.lensId}`);
+  function goToDashboard() {
+    // Auto-select a random template if none chosen yet
+    if (!store.selectedTemplate) {
+      const randomTpl = HTML_TEMPLATES[Math.floor(Math.random() * HTML_TEMPLATES.length)];
+      store.setSelectedTemplate(randomTpl);
+    }
+    navigate(`/media/dashboard?workflow_id=${workflowId}&lens=${store.lensId}`);
   }
+
+  // Keep for backward compat (legacy button text says "Review Articles")
+  function goToReview() { goToDashboard(); }
 
   const canLaunch = !submitting && store.file && selectedDashboards.length > 0;
 
@@ -258,19 +267,19 @@ export default function Stage3Launch() {
         {pipelineComplete && (
           <motion.button
             className="mi-btn mi-btn--primary"
-            onClick={goToReview}
+            onClick={goToDashboard}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
             <CheckCircle2 size={14} />
-            Review Articles
+            Open Dashboard
           </motion.button>
         )}
 
         {!pipelineComplete && workflowId && (
-          <button className="mi-btn mi-btn--outline mi-btn--sm" onClick={goToReview} disabled={!pipelineComplete}>
+          <button className="mi-btn mi-btn--outline mi-btn--sm" onClick={goToDashboard} disabled={!pipelineComplete}>
             View partial results →
           </button>
         )}

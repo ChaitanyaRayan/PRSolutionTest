@@ -13,7 +13,7 @@ export default function Stage5Dashboard() {
   const [searchParams] = useSearchParams();
 
   const workflowId = searchParams.get('workflow_id') ?? useMediaStore.getState().workflowId;
-  const lensId     = searchParams.get('lens')        ?? useMediaStore.getState().lensId;
+  const lensId     = searchParams.get('lens_id') ?? searchParams.get('lens') ?? useMediaStore.getState().lensId;
   const brandName  = useMediaStore((s) => s.brandName);
 
   if (!workflowId) {

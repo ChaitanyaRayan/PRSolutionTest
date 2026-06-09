@@ -5,9 +5,6 @@ import { BrandThemeProvider }    from './context/BrandThemeContext';
 import Stage1Upload              from './stages/Stage1Upload';
 import Stage2Configure           from './stages/Stage2Configure';
 import Stage3Launch              from './stages/Stage3Launch';
-import Stage4Review              from './stages/Stage4Review';
-import Stage5TemplateSelect      from './stages/Stage5TemplateSelect';
-import Stage6TemplatePreview     from './stages/Stage6TemplatePreview';
 import Stage7Dashboard           from './stages/Stage7Dashboard';
 import { useMediaStore }         from './store/mediaStore';
 import { useDropdowns }          from './hooks/useDropdowns';
@@ -22,37 +19,23 @@ function RequireDashboards({ children }) {
   const ids = useMediaStore((s) => s.selectedDashboards);
   return ids?.length > 0 ? children : <Navigate to="/media/configure" replace />;
 }
-function RequireWorkflow({ children }) {
-  const id = useMediaStore((s) => s.workflowId);
-  return id ? children : <Navigate to="/media/launch" replace />;
-}
-function RequireTemplate({ children }) {
-  const tpl = useMediaStore((s) => s.selectedTemplate);
-  return tpl ? children : <Navigate to="/media/template-select" replace />;
-}
 
 // ── Progress stepper ──────────────────────────────────────────────────────────
+// Streamlined to 4 steps — template is auto-selected at launch, no separate review/template stages
 const STEPS = [
-  { path: '/media/upload',           label: 'Upload',    num: '01' },
-  { path: '/media/configure',        label: 'Configure', num: '02' },
-  { path: '/media/launch',           label: 'Launch',    num: '03' },
-  { path: '/media/review',           label: 'Review',    num: '04' },
-  { path: '/media/template-select',  label: 'Template',  num: '05' },
-  { path: '/media/dashboard',        label: 'Dashboard', num: '06' },
+  { path: '/media/upload',    label: 'Upload',    num: '01' },
+  { path: '/media/configure', label: 'Configure', num: '02' },
+  { path: '/media/launch',    label: 'Launch',    num: '03' },
+  { path: '/media/dashboard', label: 'Dashboard', num: '04' },
 ];
 
 function MediaStepper() {
-  const location   = useLocation();
+  const location    = useLocation();
   const isDashboard = location.pathname.startsWith('/media/dashboard');
 
-  // On the dashboard route, hide the stepper entirely (full-screen experience)
-  if (isDashboard) return null;
+  if (isDashboard) return null;   // full-screen dashboard hides the stepper
 
   const currentIdx = STEPS.findIndex((s) => location.pathname.startsWith(s.path));
-  // template-preview maps to step 05
-  const effectiveIdx = location.pathname.startsWith('/media/template-preview')
-    ? STEPS.findIndex((s) => s.path === '/media/template-select')
-    : currentIdx;
 
   return (
     <nav className="mi-stepper" aria-label="Progress">
@@ -66,18 +49,18 @@ function MediaStepper() {
             <React.Fragment key={step.path}>
               <div
                 className={`mi-stepper-step ${
-                  i < effectiveIdx  ? 'mi-stepper-step--done'   :
-                  i === effectiveIdx ? 'mi-stepper-step--active' :
-                                       'mi-stepper-step--pending'
+                  i < currentIdx  ? 'mi-stepper-step--done'   :
+                  i === currentIdx ? 'mi-stepper-step--active' :
+                                     'mi-stepper-step--pending'
                 }`}
               >
                 <span className="mi-stepper-num">
-                  {i < effectiveIdx ? <CheckMiniIcon /> : step.num}
+                  {i < currentIdx ? <CheckMiniIcon /> : step.num}
                 </span>
                 <span className="mi-stepper-label">{step.label}</span>
               </div>
               {i < STEPS.length - 1 && (
-                <div className={`mi-stepper-connector ${i < effectiveIdx ? 'mi-stepper-connector--done' : ''}`} />
+                <div className={`mi-stepper-connector ${i < currentIdx ? 'mi-stepper-connector--done' : ''}`} />
               )}
             </React.Fragment>
           ))}
@@ -91,18 +74,13 @@ function MediaStepper() {
 // ── MediaApp ──────────────────────────────────────────────────────────────────
 export default function MediaApp() {
   const location = useLocation();
-  // Scroll is handled inside DashboardEngine (.eng-body) and by .mi-main
-  // No fullscreen class needed at the app level — it was breaking scroll
-  const isDashboard = false;
-
-  // Pre-fetch lens & LLM reference data as soon as the app mounts
   useDropdowns();
 
   return (
     <BrandThemeProvider>
-      <div className={`mi-app ${isDashboard ? 'mi-app--fullscreen' : ''}`}>
+      <div className="mi-app">
         <MediaStepper />
-        <main className={`mi-main ${isDashboard ? 'mi-main--fullscreen' : ''}`}>
+        <main className="mi-main">
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
@@ -113,21 +91,18 @@ export default function MediaApp() {
               style={{ height: '100%' }}
             >
               <Routes location={location}>
-                {/* Core workflow stages */}
                 <Route path="upload"    element={<Stage1Upload />} />
                 <Route path="configure" element={<RequireFile><Stage2Configure /></RequireFile>} />
                 <Route path="launch"    element={<RequireDashboards><Stage3Launch /></RequireDashboards>} />
-                <Route path="review"    element={<Stage4Review />} />
 
-                {/* Template stages — after review */}
-                <Route path="template-select"
-                  element={<RequireWorkflow><Stage5TemplateSelect /></RequireWorkflow>} />
-                <Route path="template-preview"
-                  element={<RequireTemplate><Stage6TemplatePreview /></RequireTemplate>} />
+                {/* Keep legacy routes active so saved workflow links still work */}
+                <Route path="review"           element={<Navigate to="/media/dashboard" replace />} />
+                <Route path="template-select"  element={<Navigate to="/media/dashboard" replace />} />
+                <Route path="template-preview" element={<Navigate to="/media/dashboard" replace />} />
 
-                {/* Dashboard — single, multi-homepage, or specific lens */}
-                <Route path="dashboard"           element={<Stage7Dashboard />} />
-                <Route path="dashboard/lens/:id"  element={<Stage7Dashboard />} />
+                {/* Dashboard */}
+                <Route path="dashboard"          element={<Stage7Dashboard />} />
+                <Route path="dashboard/lens/:id" element={<Stage7Dashboard />} />
 
                 <Route path="*" element={<Navigate to="upload" replace />} />
               </Routes>

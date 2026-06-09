@@ -358,37 +358,44 @@ app.post('/api/media/interpret-charts', async (req, res) => {
   try {
     const { dashboardId, brandName, workflowId, lensId, rawChartData } = req.body;
 
-    const systemPrompt = `You are a senior media intelligence data analyst. Given raw chart data from a media monitoring API,
-return a JSON object with key "charts" — an array of chart objects ready for Recharts rendering.
+    const systemPrompt = `You are a senior media intelligence data analyst. Given raw chart data from a media monitoring API (charts?workflow_id=&lens_id=), return normalised Recharts-ready chart configs.
 
-Each chart object must follow this exact shape:
+The input may be in one of two formats:
+FORMAT A: Full charts API response with keys: chart_data, chart_insights, storyboard, overall_assessment
+FORMAT B: Already-normalised charts array
+
+For FORMAT A, extract real values from these chart_data fields:
+- datewise_coverage → area/line chart with date on X axis, count on Y
+- sentiment_distribution.POS/NEG/NEU → pie or bar chart
+- theme_distribution → horizontal bar chart of themes
+- top_publications → bar chart of publications by count
+- publication_reach_sentiment → scatter or bar chart
+- total_count and total_reach → KPI charts
+
+For FORMAT B, pass through with normalisation.
+
+Each chart object must follow:
 {
-  "type": "bar" | "line" | "area" | "pie" | "radialBar",
-  "series": [{"name": "Series Name", "values": [number, ...]}],
-  "labels": ["label1", "label2", ...],
-  "meta": {
-    "title": "Chart title",
-    "unit": "unit string or empty",
-    "period": "e.g. Last 30 days"
-  },
-  "insight": "2–3 sentence analytical insight about this chart. Lead with the finding, not 'The chart shows'."
+  "type": "bar"|"line"|"area"|"pie",
+  "series": [{"name": "Series Name", "values": [number,...]}],
+  "labels": ["label1",...],
+  "meta": {"title": "...", "unit": "...", "period": "..."},
+  "insight": "from chart_insights[key].insight if available, else generate from data",
+  "analysis": "from chart_insights[key].analysis if available",
+  "dateInsights": "array from chart_insights[key].date_insights if available"
 }
 
-Rules:
-- Produce 3–6 charts that best represent the data
-- Choose chart types that fit the data shape (time series → line/area, categories → bar, proportions → pie)
-- Ensure all values arrays have the same length as labels
-- Insights must be specific, data-driven, and concise
-- Return ONLY valid JSON — no markdown, no explanation`;
+RULES:
+- Use ACTUAL numbers from the input data, never fabricate
+- Produce charts only for fields that have non-trivial data
+- Filter out fields where all values are 0
+- Return ONLY valid JSON with key "charts"`;
 
-    const userPrompt = `Brand: ${brandName}
-Dashboard type: ${dashboardId} (lens: ${lensId})
-Workflow ID: ${workflowId}
+    const rawData = req.body;
+    const userPrompt = `Extract and normalise charts from this data. Use actual values only:
+${JSON.stringify(rawData, null, 2).slice(0, 10000)}
 
-Raw chart data from API:
-${JSON.stringify(rawChartData, null, 2).slice(0, 8000)}
-
-Interpret this data and return normalised chart configs with insights.`;
+Return JSON: { "charts": [...] }`;
 
     const raw = await callAI(systemPrompt, userPrompt, { maxTokens: 4096 });
 
@@ -555,6 +562,58 @@ app.get('/charts', async (req, res) => {
 import { mountDashboardRoutes } from './dashboardApi.js';
 mountDashboardRoutes(app, callAI, workflows);
 
+// ── Template Renderer — serves HTML templates with real data injected ─────────
+import { mountTemplateRoutes } from './templateRenderer.js';
+mountTemplateRoutes(app, callAI);
+
+// ── Background upload — accepts image or video for dashboard hero ─────────────
+import { writeFile, mkdir } from 'fs/promises';
+// extname and join already imported at top of file
+// randomUUID already imported via 'crypto' at top of file
+
+const UPLOAD_DIR = new URL('../uploads/', import.meta.url).pathname;
+await mkdir(UPLOAD_DIR, { recursive: true }).catch(() => {});
+
+app.post('/api/media/upload-background', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file provided' });
+    const ext  = extname(req.file.originalname).toLowerCase() || '.bin';
+    const name = `bg_${randomUUID()}${ext}`;
+    const path = join(UPLOAD_DIR, name);
+    await writeFile(path, req.file.buffer);
+    const isVideo = ['.mp4','.webm','.mov'].includes(ext);
+    const url     = `/uploads/${name}`;
+    res.json({ url, type: isVideo ? 'video' : 'image', name });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Serve uploaded files
+app.use('/uploads', (await import('express')).default.static(UPLOAD_DIR));
+
+// ── HTML Export — generate downloadable HTML combining template + API data ────
+app.get('/api/media/export-html', async (req, res) => {
+  const { template_id, workflow_id, lens_id } = req.query;
+  if (!template_id) return res.status(400).json({ error: 'template_id required' });
+
+  try {
+    // Reuse the template renderer but force regeneration for export
+    const renderUrl = `http://localhost:${process.env.PORT || 3001}/api/template/render?template_id=${template_id}&workflow_id=${workflow_id ?? ''}&lens_id=${lens_id ?? ''}&force=1`;
+    const resp = await fetch(renderUrl);
+    if (!resp.ok) throw new Error(`Render failed: ${resp.status}`);
+    const html = await resp.text();
+
+    // For download: set Content-Disposition
+    const filename = `dashboard_${template_id}_${workflow_id ?? 'export'}.html`;
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(html);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // WebSocket upgrade (dev mock pipeline simulator)
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
@@ -656,6 +715,17 @@ try {
 } catch (e) {
   console.warn('[ws] WebSocket server not available:', e.message);
 }
+
+// ── Global error handler — catches any unhandled async errors in routes ───────
+// Must be registered after all routes. Prevents Express from sending HTML errors.
+app.use((err, req, res, next) => {
+  console.error('[globalErrorHandler]', req.method, req.url, err.message);
+  if (res.headersSent) return next(err);
+  res.status(err.status ?? 500).json({
+    error: err.message ?? 'Internal server error',
+    path: req.url,
+  });
+});
 
 const server = createServer(app);
 
